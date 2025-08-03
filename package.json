@@ -77,7 +77,8 @@
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0"
+    "zod-validation-error": "^3.4.0",
+    "vite": "^6.3.5"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",
