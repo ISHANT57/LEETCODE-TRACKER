@@ -1,8 +1,14 @@
+// Add this at the top
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, resolve } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Now use it
+const aliasPath = resolve(__dirname, 'client', 'src');
+console.log('Resolved alias path:', aliasPath);
+
 
 
 import dotenv from "dotenv";
