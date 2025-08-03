@@ -78,7 +78,7 @@
     "ws": "^8.18.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0",
-    "vite": "^6.3.5"
+   "vite": "^6.0.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",
@@ -101,9 +101,11 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.3",
     "typescript": "^5.6.3",
-    "vite": "^6.3.5"
+    "vite": "^6.0.0"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
   }
+
+  
 }
