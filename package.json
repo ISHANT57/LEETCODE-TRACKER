@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
-    "build": "npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+      "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "db:push": "drizzle-kit push"
@@ -51,9 +51,9 @@
     "drizzle-orm": "^0.39.1",
     "drizzle-zod": "^0.7.0",
     "embla-carousel-react": "^8.6.0",
+    "esbuild": "^0.25.8",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
-    "esbuild": "^0.25.8",
     "framer-motion": "^11.13.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.453.0",
@@ -75,11 +75,11 @@
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.2.5",
     "vaul": "^1.1.2",
+    "vite": "^7.0.6",
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0",
-    "vite": "^5.4.19"
+    "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
     "@replit/vite-plugin-cartographer": "^0.2.7",
@@ -89,7 +89,7 @@
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "4.17.21",
     "@types/express-session": "^1.18.0",
-    "@types/node": "20.16.11",
+    "@types/node": "^22.17.0",
     "@types/passport": "^1.0.16",
     "@types/passport-local": "^1.0.38",
     "@types/react": "^18.3.11",
@@ -103,8 +103,7 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
-    "typescript": "5.6.3",
-    "vite": "^5.4.19"
+    "typescript": "5.6.3"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
