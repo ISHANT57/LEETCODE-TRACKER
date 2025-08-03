@@ -1,13 +1,13 @@
-// Add this at the top
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+// ESM-compatible __dirname replacement
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-// Now use it
-const aliasPath = resolve(__dirname, 'client', 'src');
-console.log('Resolved alias path:', aliasPath);
+// Now use __dirname safely
+const clientPath = path.join(__dirname, "../client");
+console.log("Resolved client path:", clientPath);
 
 
 
