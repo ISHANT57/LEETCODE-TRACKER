@@ -161,12 +161,18 @@ app.use((req, res, next) => {
     } else {
       serveStatic(app); // handles frontend static dist
     }
+    const PORT = parseInt(process.env.PORT || "5000");
 
-    // ✅ Use PORT from .env or default to 5000
-    const port = parseInt(process.env.PORT || "5000", 10);
-    server.listen({ port, host: "0.0.0.0" }, () => {
-      log(`🚀 Server running on http://localhost:${port}`);
-    });
+app.listen(PORT, "0.0.0.0", () => {
+
+  console.log(`Server running on port ${PORT}`);
+
+});
+    // // ✅ Use PORT from .env or default to 5000
+    // const port = parseInt(process.env.PORT || "5000", 10);
+    // server.listen({ port, host: "0.0.0.0" }, () => {
+    //   log(`🚀 Server running on http://localhost:${port}`);
+    // });
 
   } catch (error) {
     console.error("❌ Failed to start server:", error);
