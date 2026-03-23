@@ -174,9 +174,9 @@ app.listen(PORT, "0.0.0.0", () => {
     //   log(`🚀 Server running on http://localhost:${port}`);
     // });app.get("/health", (req, res) => {
 
-  res.status(200).json({ status: "ok", time: new Date() });
+//   res.status(200).json({ status: "ok", time: new Date() });
 
-});
+// });
 
   } catch (error) {
     console.error("❌ Failed to start server:", error);
