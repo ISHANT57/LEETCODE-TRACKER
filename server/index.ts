@@ -115,16 +115,34 @@ app.use(express.urlencoded({ extended: false }));
 // than this API (Render), browsers block the cross-origin requests unless the
 // API returns CORS headers. Set FRONTEND_URL to the deployed frontend origin(s),
 // comma-separated (e.g. "https://leetcode-tracker.vercel.app").
+//
+// Entries support "*" wildcards so Vercel PREVIEW deployments — which get a
+// unique URL every deploy (e.g. myapp-a1b2c3-team.vercel.app) — are allowed
+// without editing env vars each time. Example value covering production and
+// all previews:
+//   https://leetcode-tracking-system-*.vercel.app
+//
 // If FRONTEND_URL is unset (local/monolith), CORS is a no-op and same-origin
 // requests keep working as before.
-const allowedOrigins = (process.env.FRONTEND_URL || "")
+const originMatchers = (process.env.FRONTEND_URL || "")
   .split(",")
   .map((o) => o.trim().replace(/\/$/, ""))
-  .filter(Boolean);
+  .filter(Boolean)
+  .map((pattern) => {
+    // Escape regex-special chars, then turn "*" into ".*" for wildcard matching.
+    const escaped = pattern
+      .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+      .replace(/\*/g, ".*");
+    return new RegExp(`^${escaped}$`);
+  });
+
+function isAllowedOrigin(origin: string): boolean {
+  return originMatchers.some((re) => re.test(origin));
+}
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin && isAllowedOrigin(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Credentials", "true");
