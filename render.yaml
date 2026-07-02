@@ -7,7 +7,9 @@ services:
     plan: free
     # API-only build: bundle just the server (no client build needed here, the
     # frontend is deployed separately on Vercel/Cloudflare Pages).
-    buildCommand: npm install && npm run build:server
+    # --include=dev forces devDependencies (esbuild) to install even though
+    # NODE_ENV=production, which would otherwise skip them and break the build.
+    buildCommand: npm install --include=dev && npm run build:server
     startCommand: npm run start
     healthCheckPath: /health
     autoDeploy: true
