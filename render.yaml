@@ -1,0 +1,25 @@
+# Render Blueprint for the LeetCode Tracker (free tier).
+# Deploy: push to GitHub, then "New +" -> "Blueprint" and pick this repo.
+services:
+  - type: web
+    name: leetcode-tracker
+    runtime: node
+    plan: free
+    # API-only build: bundle just the server (no client build needed here, the
+    # frontend is deployed separately on Vercel/Cloudflare Pages).
+    buildCommand: npm install && npm run build:server
+    startCommand: npm run start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false   # set this in the Render dashboard (Neon connection string)
+      # Frontend origin(s) allowed by CORS, comma-separated. Set this to your
+      # deployed frontend URL, e.g. https://leetcode-tracker.vercel.app
+      - key: FRONTEND_URL
+        sync: false
+      # MONGODB_URL is optional and only needed if you switch to the Mongo storage.
+      - key: MONGODB_URL
+        sync: false

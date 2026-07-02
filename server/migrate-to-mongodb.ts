@@ -8,6 +8,7 @@ interface PostgreSQLStudent {
   name: string;
   leetcode_username: string;
   leetcode_profile_link: string;
+  batch: string;
   created_at: Date;
 }
 
@@ -69,7 +70,8 @@ async function migrateFromPostgreSQL() {
         await storage.createStudent({
           name: student.name,
           leetcodeUsername: student.leetcode_username,
-          leetcodeProfileLink: student.leetcode_profile_link
+          leetcodeProfileLink: student.leetcode_profile_link,
+          batch: (student.batch === "2027" || student.batch === "2028") ? student.batch : "2028",
         });
         console.log(`✓ Migrated student: ${student.name}`);
       } catch (error) {

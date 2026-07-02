@@ -140,7 +140,8 @@ export class WeeklyProgressImportService {
         student = await storage.createStudent({
           name: name.trim(),
           leetcodeUsername: leetcodeUsername.trim(),
-          leetcodeProfileLink: profileLink.trim()
+          leetcodeProfileLink: profileLink.trim(),
+          batch: "2028",
         });
       } catch (error) {
         stats.errors.push(`Failed to create student ${name}: ${error}`);
@@ -205,16 +206,18 @@ export class WeeklyProgressImportService {
 
   // Helper method to get enhanced weekly progress data with student details and real-time data
   async getEnhancedWeeklyProgressData() {
-    const allProgressData = await storage.getAllWeeklyProgressData();
-    const allStudents = await storage.getAllStudents();
-    
-    const enhancedData = await Promise.all(
-      allProgressData.map(async (progressData) => {
+    const [allProgressData, allStudents, progressByStudent] = await Promise.all([
+      storage.getAllWeeklyProgressData(),
+      storage.getAllStudents(),
+      storage.getAllDailyProgressGrouped(),
+    ]);
+
+    const enhancedData = allProgressData.map((progressData) => {
         const student = allStudents.find(s => s.id === progressData.studentId);
         if (!student) return null;
-        
-        // Get current real-time data from daily progress
-        const latestProgress = await storage.getLatestDailyProgress(student.id);
+
+        // Get current real-time data from daily progress (in-memory lookup)
+        const latestProgress = progressByStudent.get(student.id)?.[0];
         const currentSolved = latestProgress?.totalSolved || 0;
         
         // Calculate new increment (current - week4)
@@ -247,9 +250,8 @@ export class WeeklyProgressImportService {
             averageWeeklyGrowth: progressData.averageWeeklyGrowth
           }
         };
-      })
-    );
-    
+      });
+
     return enhancedData.filter(item => item !== null);
   }
 

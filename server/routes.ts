@@ -486,7 +486,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const declined = analyticsData.filter(s => s.status === 'declined').length;
       const same = analyticsData.filter(s => s.status === 'same').length;
       
-      const averageImprovement = analyticsData.reduce((sum, s) => sum + s.improvement, 0) / totalStudents;
+      const averageImprovement = totalStudents > 0
+        ? analyticsData.reduce((sum, s) => sum + s.improvement, 0) / totalStudents
+        : 0;
       
       // Top 10 students for progress trend chart
       const top10Students = analyticsData

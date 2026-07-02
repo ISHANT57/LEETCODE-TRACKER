@@ -161,7 +161,8 @@ export class CSVImportService {
         student = await storage.createStudent({
           name: data.name,
           leetcodeUsername: data.leetcodeUsername,
-          leetcodeProfileLink: data.leetcodeProfileLink
+          leetcodeProfileLink: data.leetcodeProfileLink,
+          batch: "2028",
         });
       }
 
@@ -296,17 +297,22 @@ export class CSVImportService {
    * Get analytics data combining historical and current data
    */
   async getAnalyticsData() {
-    const students = await storage.getAllStudents();
+    // Bulk-fetch everything up front to avoid N+1 queries over the
+    // serverless HTTP driver.
+    const [students, trendsByStudent, progressByStudent] = await Promise.all([
+      storage.getAllStudents(),
+      storage.getAllWeeklyTrendsGrouped(),
+      storage.getAllDailyProgressGrouped(),
+    ]);
     const analyticsData = [];
 
     for (const student of students) {
-      // Get historical weekly trends
-      const weeklyTrends = await storage.getWeeklyTrends(student.id, 4);
-      
-      // Get current stats (most recent daily progress)
-      const recentProgress = await storage.getStudentDailyProgress(student.id, 1);
-      const currentProgress = recentProgress[0];
-      
+      // Historical weekly trends (already newest-first), keep up to 4.
+      const weeklyTrends = (trendsByStudent.get(student.id) || []).slice(0, 4);
+
+      // Current stats (most recent daily progress).
+      const currentProgress = progressByStudent.get(student.id)?.[0];
+
       // Calculate improvement from Week 3 to current
       const week3Data = weeklyTrends.find(w => w.weekStart === this.getWeekStart(new Date(), 1));
       const currentSolved = currentProgress?.totalSolved || 0;
@@ -407,7 +413,8 @@ export class CSVImportService {
         student = await storage.createStudent({
           name: data.name,
           leetcodeUsername: data.leetcodeUsername,
-          leetcodeProfileLink: data.leetcodeProfileLink
+          leetcodeProfileLink: data.leetcodeProfileLink,
+          batch: "2028",
         });
         wasCreated = true;
       }

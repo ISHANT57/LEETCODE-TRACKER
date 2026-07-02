@@ -73,16 +73,27 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "..", "client", "dist"); // ✅ correct dist folder
+  // Vite builds the client into dist/public (see vite.config.ts `build.outDir`).
+  // In production the server bundle runs from dist/index.js, so __dirname is
+  // the dist folder and the client assets live alongside it in ./public.
+  const distPath = path.resolve(__dirname, "public");
 
   if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+    // API-only deploy (split frontend on Vercel/Cloudflare Pages): there is no
+    // client build to serve. Don't crash — just expose a root marker so the
+    // service responds to "/" and let the API routes handle everything else.
+    console.warn(
+      `No client build at ${distPath}; running API-only (frontend deployed separately).`,
     );
+    app.get("/", (_req, res) => {
+      res.json({ status: "api", service: "leetcode-tracker" });
+    });
+    return;
   }
 
   app.use(express.static(distPath));
 
+  // SPA fallback: send index.html for any non-API route.
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });

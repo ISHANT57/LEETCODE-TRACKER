@@ -100,11 +100,6 @@ export default function Leaderboard() {
                   <div className="text-right">
                     <p className="text-2xl font-bold text-slate-900">+{entry.weeklyScore}</p>
                     <p className="text-sm text-slate-500">problems this week</p>
-                    {entry.student.stats?.ranking && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        LeetCode Rank: #{entry.student.stats.ranking.toLocaleString()}
-                      </p>
-                    )}
                   </div>
                 </div>
               ))}
