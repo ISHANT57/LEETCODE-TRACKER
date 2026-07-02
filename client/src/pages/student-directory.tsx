@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import StudentAvatar from '@/components/student-avatar';
+import PageHeader from '@/components/page-header';
+import StatCard from '@/components/stat-card';
 import { useState } from 'react';
-import { Search, Trophy, TrendingUp } from 'lucide-react';
+import { Search, Trophy, TrendingUp, Users, Flame, ChevronRight } from 'lucide-react';
 
 interface Student {
   id: string;
@@ -13,6 +15,7 @@ interface Student {
   leetcodeUsername: string;
   leetcodeProfileLink: string;
   profilePhoto?: string;
+  githubUsername?: string | null;
   createdAt: string;
 }
 
@@ -29,6 +32,19 @@ interface StudentWithStats extends Student {
   streak: number;
 }
 
+function statusStyle(status: string) {
+  switch (status) {
+    case 'Excellent':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'Active':
+      return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'Underperforming':
+      return 'bg-red-50 text-red-700 border-red-200';
+    default:
+      return 'bg-slate-100 text-slate-600 border-slate-200';
+  }
+}
+
 export default function StudentDirectory() {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -36,154 +52,167 @@ export default function StudentDirectory() {
     queryKey: ['/api/students/all'],
   });
 
-  const filteredStudents = students?.filter(student =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.leetcodeUsername.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredStudents =
+    students?.filter(
+      (student) =>
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.leetcodeUsername.toLowerCase().includes(searchTerm.toLowerCase()),
+    ) || [];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Excellent': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'Active': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'Underperforming': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Student Directory</h1>
-          <p className="text-muted-foreground">Loading students...</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-3 bg-gray-200 rounded w-full"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const totalStudents = students?.length ?? 0;
+  const totalSolved =
+    students?.reduce((sum, s) => sum + (s.stats?.totalSolved || 0), 0) ?? 0;
+  const activeThisWeek =
+    students?.filter((s) => (s.weeklyProgress || 0) > 0).length ?? 0;
+  const topSolver = students
+    ?.slice()
+    .sort((a, b) => (b.stats?.totalSolved || 0) - (a.stats?.totalSolved || 0))[0];
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold">Student Directory</h1>
-        <p className="text-muted-foreground">
-          Browse all {students?.length || 0} students and their progress
-        </p>
-      </div>
+    <div>
+      <PageHeader
+        icon={<Users size={20} />}
+        title="Student Directory"
+        description={`Browse all ${totalStudents} students and their progress`}
+      />
 
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search students by name or LeetCode username..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredStudents.map((student) => (
-          <Link key={student.id} href={`/student/${student.leetcodeUsername}`}>
-            <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary/20">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Avatar>
-                      {student.profilePhoto && (
-                        <AvatarImage src={student.profilePhoto} alt={student.name} />
-                      )}
-                      <AvatarFallback className="bg-primary/10">
-                        {student.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle className="text-base">{student.name}</CardTitle>
-                      <CardDescription className="text-sm">
-                        @{student.leetcodeUsername}
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Badge className={getStatusColor(student.status)}>
-                    {student.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center">
-                      <Trophy className="h-4 w-4 mr-1 text-yellow-500" />
-                      Total Solved
-                    </span>
-                    <span className="font-semibold">{student.stats.totalSolved}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center">
-                      <TrendingUp className="h-4 w-4 mr-1 text-green-500" />
-                      Weekly Progress
-                    </span>
-                    <span className="font-semibold">{student.weeklyProgress}</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center">
-                      <Trophy className="h-4 w-4 mr-1 text-yellow-500" />
-                      LeetCode Rank
-                    </span>
-                    <span className="font-semibold text-xs">
-                      {student.stats.ranking > 0 ? `#${student.stats.ranking.toLocaleString()}` : 'Not ranked'}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                      <div className="font-semibold text-green-700 dark:text-green-300">
-                        {student.stats.easySolved}
-                      </div>
-                      <div className="text-green-600 dark:text-green-400">Easy</div>
-                    </div>
-                    <div className="text-center p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
-                      <div className="font-semibold text-yellow-700 dark:text-yellow-300">
-                        {student.stats.mediumSolved}
-                      </div>
-                      <div className="text-yellow-600 dark:text-yellow-400">Medium</div>
-                    </div>
-                    <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded">
-                      <div className="font-semibold text-red-700 dark:text-red-300">
-                        {student.stats.hardSolved}
-                      </div>
-                      <div className="text-red-600 dark:text-red-400">Hard</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      {filteredStudents.length === 0 && searchTerm && (
-        <div className="text-center py-12">
-          <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold">No students found</h3>
-          <p className="text-muted-foreground">
-            Try adjusting your search term or browse all students
-          </p>
+      <div className="page-container py-6 space-y-6">
+        {/* Summary stats */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard
+            label="Students"
+            value={isLoading ? '—' : totalStudents}
+            icon={<Users size={18} />}
+          />
+          <StatCard
+            label="Problems Solved"
+            value={isLoading ? '—' : totalSolved.toLocaleString()}
+            icon={<Trophy size={18} />}
+            accent="text-amber-600 bg-amber-50"
+          />
+          <StatCard
+            label="Active This Week"
+            value={isLoading ? '—' : activeThisWeek}
+            icon={<TrendingUp size={18} />}
+            accent="text-emerald-600 bg-emerald-50"
+          />
+          <StatCard
+            label="Top Solver"
+            value={isLoading ? '—' : topSolver?.stats?.totalSolved ?? 0}
+            hint={topSolver?.name}
+            icon={<Flame size={18} />}
+            accent="text-orange-600 bg-orange-50"
+          />
         </div>
-      )}
+
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or LeetCode username…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-11 bg-card"
+          />
+        </div>
+
+        {/* Grid */}
+        {isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <Card key={i} className="h-44 animate-pulse bg-muted/40" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredStudents.map((student, i) => (
+              <Link key={student.id} href={`/student/${student.leetcodeUsername}`}>
+                <Card
+                  className="group h-full cursor-pointer border-border/70 shadow-soft transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft-lg animate-fade-in"
+                  style={{ animationDelay: `${Math.min(i, 12) * 20}ms` }}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <StudentAvatar
+                          name={student.name}
+                          githubUsername={student.githubUsername}
+                          profilePhoto={student.profilePhoto}
+                          size={48}
+                          className="ring-2 ring-primary/10"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-foreground truncate">
+                            {student.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            @{student.leetcodeUsername}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`shrink-0 ${statusStyle(student.status)}`}
+                      >
+                        {student.status}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5">
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Trophy className="h-4 w-4 text-amber-500" />
+                        Total Solved
+                      </div>
+                      <span className="text-lg font-bold text-foreground">
+                        {student.stats.totalSolved}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                      <div className="rounded-lg bg-emerald-50 py-2">
+                        <div className="font-bold text-emerald-700">
+                          {student.stats.easySolved}
+                        </div>
+                        <div className="text-emerald-600">Easy</div>
+                      </div>
+                      <div className="rounded-lg bg-amber-50 py-2">
+                        <div className="font-bold text-amber-700">
+                          {student.stats.mediumSolved}
+                        </div>
+                        <div className="text-amber-600">Medium</div>
+                      </div>
+                      <div className="rounded-lg bg-red-50 py-2">
+                        <div className="font-bold text-red-700">
+                          {student.stats.hardSolved}
+                        </div>
+                        <div className="text-red-600">Hard</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3 text-sm">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                        +{student.weeklyProgress} this week
+                      </span>
+                      <span className="flex items-center gap-0.5 font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                        View <ChevronRight className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {filteredStudents.length === 0 && !isLoading && (
+          <div className="py-16 text-center">
+            <Search className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
+            <h3 className="text-lg font-semibold">No students found</h3>
+            <p className="text-muted-foreground">Try adjusting your search term.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

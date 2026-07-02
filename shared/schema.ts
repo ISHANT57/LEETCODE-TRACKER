@@ -9,6 +9,7 @@ export const students = pgTable("students", {
   leetcodeUsername: text("leetcode_username").notNull().unique(),
   leetcodeProfileLink: text("leetcode_profile_link").notNull(),
   profilePhoto: text("profile_photo"), // URL to LeetCode profile photo
+  githubUsername: text("github_username"), // GitHub handle; avatar served from https://github.com/<handle>.png
   batch: text("batch").notNull().default("2028"), // "2027" or "2028"
   createdAt: timestamp("created_at").defaultNow(),
 });

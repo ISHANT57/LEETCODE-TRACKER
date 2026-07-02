@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import StudentAvatar from '@/components/student-avatar';
+import PageHeader from '@/components/page-header';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { UniversityDashboardData } from '@shared/schema';
@@ -113,33 +114,33 @@ export default function UniversityDashboard() {
   ) || [];
 
   return (
-    <div className="flex-1 p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">University Dashboard</h1>
-          <p className="text-muted-foreground">
-            Combined overview and performance tracking for all batches
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => syncMutation.mutate()}
-            disabled={syncMutation.isPending}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {syncMutation.isPending ? 'Syncing...' : 'Sync All Data'}
-          </Button>
-          <Button
-            onClick={() => initBatch2027Mutation.mutate()}
-            disabled={initBatch2027Mutation.isPending}
-            variant="outline"
-          >
-            {initBatch2027Mutation.isPending ? 'Initializing...' : 'Init Batch 2027'}
-          </Button>
-        </div>
-      </div>
+    <div>
+      <PageHeader
+        icon={<Building2 size={20} />}
+        title="University Dashboard"
+        description="Combined overview and performance tracking for all batches"
+        actions={
+          <>
+            <Button
+              onClick={() => initBatch2027Mutation.mutate()}
+              disabled={initBatch2027Mutation.isPending}
+              variant="outline"
+              size="sm"
+            >
+              {initBatch2027Mutation.isPending ? 'Initializing…' : 'Init Batch 2027'}
+            </Button>
+            <Button
+              onClick={() => syncMutation.mutate()}
+              disabled={syncMutation.isPending}
+              size="sm"
+            >
+              {syncMutation.isPending ? 'Syncing…' : 'Sync All Data'}
+            </Button>
+          </>
+        }
+      />
 
+      <div className="page-container py-6 space-y-6">
       {/* University Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -309,19 +310,13 @@ export default function UniversityDashboard() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <div className="flex flex-col items-center">
-                          <Avatar className="w-8 h-8">
-                            {entry.student.profilePhoto && (
-                              <AvatarImage src={entry.student.profilePhoto} alt={entry.student.name} />
-                            )}
-                            <AvatarFallback className="bg-primary/10 text-xs font-bold">
-                              {entry.student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="text-xs font-medium text-gray-600 mt-1">
-                            {entry.student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                          </div>
-                        </div>
+                        <StudentAvatar
+                          name={entry.student.name}
+                          githubUsername={entry.student.githubUsername}
+                          profilePhoto={entry.student.profilePhoto}
+                          size={36}
+                          fallbackClassName="text-xs"
+                        />
                         <div>
                           <Link href={`/student/${entry.student.leetcodeUsername}`}>
                             <span className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
@@ -445,6 +440,7 @@ export default function UniversityDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

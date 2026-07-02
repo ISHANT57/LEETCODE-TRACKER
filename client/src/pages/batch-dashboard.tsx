@@ -7,11 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import StudentAvatar from '@/components/student-avatar';
+import PageHeader from '@/components/page-header';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { BatchDashboardData } from '@shared/schema';
-import { Search, ExternalLink, Flame, Activity, Trophy, Users } from 'lucide-react';
+import { Search, ExternalLink, Flame, Activity, Trophy, Users, BookOpen, RefreshCw } from 'lucide-react';
 import { Link } from 'wouter';
 
 export default function BatchDashboard() {
@@ -154,26 +155,20 @@ export default function BatchDashboard() {
   };
 
   return (
-    <div className="flex-1 p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Batch {batch} Dashboard</h1>
-          <p className="text-muted-foreground">
-            Overview and performance tracking for Batch {batch} students
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => syncMutation.mutate()}
-            disabled={syncMutation.isPending}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {syncMutation.isPending ? 'Syncing...' : 'Sync All Data'}
+    <div>
+      <PageHeader
+        icon={<BookOpen size={20} />}
+        title={`Batch ${batch} Dashboard`}
+        description={`Overview and performance tracking for Batch ${batch} students`}
+        actions={
+          <Button onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending} size="sm">
+            <RefreshCw className={`mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} size={16} />
+            {syncMutation.isPending ? 'Syncing…' : 'Sync All Data'}
           </Button>
-        </div>
-      </div>
+        }
+      />
 
+      <div className="page-container py-6 space-y-6">
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -267,16 +262,13 @@ export default function BatchDashboard() {
                   <TableRow key={student.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <div className="flex flex-col items-center">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="bg-primary/10 text-xs font-bold">
-                              {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="text-xs font-medium text-gray-600 mt-1">
-                            {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                          </div>
-                        </div>
+                        <StudentAvatar
+                          name={student.name}
+                          githubUsername={student.githubUsername}
+                          profilePhoto={student.profilePhoto}
+                          size={36}
+                          fallbackClassName="text-xs"
+                        />
                         <div>
                           <Link href={`/student/${student.leetcodeUsername}`}>
                             <span className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
@@ -385,6 +377,12 @@ export default function BatchDashboard() {
                   }`}>
                     {entry.rank}
                   </div>
+                  <StudentAvatar
+                    name={entry.student.name}
+                    githubUsername={entry.student.githubUsername}
+                    profilePhoto={entry.student.profilePhoto}
+                    size={36}
+                  />
                   <div>
                     <div className="font-medium">{entry.student.name}</div>
                     <div className="text-sm text-gray-500">@{entry.student.leetcodeUsername}</div>
@@ -399,6 +397,7 @@ export default function BatchDashboard() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

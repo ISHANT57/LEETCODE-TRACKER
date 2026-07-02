@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import StudentAvatar from "@/components/student-avatar";
 import { ExternalLink, Flame } from "lucide-react";
 import { STATUS_COLORS } from "@/lib/constants";
 import type { AdminDashboardData } from "@shared/schema";
@@ -33,14 +33,13 @@ export default function StudentTable({ data }: StudentTableProps) {
             <TableRow key={student.id}>
               <TableCell>
                 <div className="flex items-center space-x-3">
-                  <Avatar className="w-8 h-8">
-                    {student.profilePhoto && (
-                      <AvatarImage src={student.profilePhoto} alt={student.name} />
-                    )}
-                    <AvatarFallback className="bg-primary/10 text-xs font-bold">
-                      {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <StudentAvatar
+                    name={student.name}
+                    githubUsername={student.githubUsername}
+                    profilePhoto={student.profilePhoto}
+                    size={32}
+                    fallbackClassName="text-xs"
+                  />
                   <span className="font-medium text-slate-900">{student.name}</span>
                 </div>
               </TableCell>

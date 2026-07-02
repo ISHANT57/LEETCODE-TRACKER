@@ -1,11 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import BatchStats from "@/components/admin/batch-stats";
 import StudentTable from "@/components/admin/student-table";
+import GithubHandleManager from "@/components/admin/github-handle-manager";
+import StudentAvatar from "@/components/student-avatar";
+import PageHeader from "@/components/page-header";
 import type { AdminDashboardData } from "@shared/schema";
 
 export default function AdminDashboard() {
@@ -121,46 +124,45 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex-1 overflow-auto">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900">Admin Dashboard</h2>
-            <p className="text-sm text-slate-500">Monitor batch performance and manage students</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Button 
+    <div>
+      <PageHeader
+        icon={<ShieldCheck size={20} />}
+        title="Admin Dashboard"
+        description="Monitor batch performance and manage students"
+        actions={
+          <>
+            <Button
               onClick={handleExportCSV}
               variant="outline"
-              className="text-green-600 border-green-600 hover:bg-green-50"
+              size="sm"
+              className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
             >
               <Download className="mr-2" size={16} />
-              Export CSV
+              <span className="hidden sm:inline">Export CSV</span>
             </Button>
-            <Button 
+            <Button
               onClick={() => syncProfilePhotosMutation.mutate()}
               disabled={syncProfilePhotosMutation.isPending}
               variant="outline"
-              className="text-purple-600 border-purple-600 hover:bg-purple-50"
+              size="sm"
             >
               <RefreshCw className={`mr-2 ${syncProfilePhotosMutation.isPending ? 'animate-spin' : ''}`} size={16} />
-              {syncProfilePhotosMutation.isPending ? 'Syncing Photos...' : 'Sync Photos'}
+              <span className="hidden sm:inline">{syncProfilePhotosMutation.isPending ? 'Syncing…' : 'Sync Photos'}</span>
             </Button>
-            <Button 
+            <Button
               onClick={() => syncMutation.mutate()}
               disabled={syncMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
+              size="sm"
             >
               <RefreshCw className={`mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} size={16} />
-              {syncMutation.isPending ? 'Syncing...' : 'Sync All'}
+              {syncMutation.isPending ? 'Syncing…' : 'Sync All'}
             </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* Dashboard Content */}
-      <div className="p-6 space-y-6">
+      <div className="page-container py-6 space-y-6">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -170,6 +172,16 @@ export default function AdminDashboard() {
           <CardContent>
             <BatchStats data={data} />
             <StudentTable data={data} />
+          </CardContent>
+        </Card>
+
+        {/* GitHub handle management → drives profile photos */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Photos (GitHub Handles)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <GithubHandleManager data={data} />
           </CardContent>
         </Card>
 
@@ -193,10 +205,11 @@ export default function AdminDashboard() {
                     }`}>
                       {entry.rank}
                     </div>
-                    <img 
-                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=32&h=32"
-                      alt="Student" 
-                      className="w-8 h-8 rounded-full object-cover" 
+                    <StudentAvatar
+                      name={entry.student.name}
+                      githubUsername={entry.student.githubUsername}
+                      profilePhoto={entry.student.profilePhoto}
+                      size={32}
                     />
                     <div>
                       <p className="font-medium text-slate-900">{entry.student.name}</p>

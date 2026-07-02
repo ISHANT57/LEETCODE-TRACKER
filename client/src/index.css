@@ -3,54 +3,74 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 100%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  /* Neutrals (slate-based) */
+  --background: hsl(210, 40%, 98%);
+  --foreground: hsl(222, 47%, 11%);
+  --muted: hsl(210, 40%, 96%);
+  --muted-foreground: hsl(215, 16%, 47%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --popover-foreground: hsl(222, 47%, 11%);
   --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(20, 5.9%, 90%);
-  --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(60, 4.8%, 95.9%);
-  --secondary-foreground: hsl(24, 9.8%, 10%);
-  --accent: hsl(60, 4.8%, 95.9%);
-  --accent-foreground: hsl(24, 9.8%, 10%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
-  --radius: 0.5rem;
-  
-  /* LeetCode specific colors */
-  --leetcode-easy: hsl(142, 76%, 36%);
+  --card-foreground: hsl(222, 47%, 11%);
+  --border: hsl(214, 32%, 91%);
+  --input: hsl(214, 32%, 91%);
+
+  /* Brand */
+  --primary: hsl(221, 83%, 53%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(210, 40%, 96%);
+  --secondary-foreground: hsl(222, 47%, 11%);
+  --accent: hsl(214, 95%, 93%);
+  --accent-foreground: hsl(221, 83%, 40%);
+  --destructive: hsl(0, 72%, 51%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(221, 83%, 53%);
+  --radius: 0.65rem;
+
+  /* Chart palette (cohesive, colorblind-considerate) */
+  --chart-1: hsl(221, 83%, 53%);
+  --chart-2: hsl(160, 84%, 39%);
+  --chart-3: hsl(38, 92%, 50%);
+  --chart-4: hsl(280, 65%, 60%);
+  --chart-5: hsl(340, 75%, 55%);
+
+  /* Dark sidebar surface */
+  --sidebar-background: hsl(222, 47%, 11%);
+  --sidebar-foreground: hsl(214, 32%, 82%);
+  --sidebar-primary: hsl(221, 83%, 53%);
+  --sidebar-primary-foreground: hsl(210, 40%, 98%);
+  --sidebar-accent: hsl(217, 33%, 17%);
+  --sidebar-accent-foreground: hsl(210, 40%, 98%);
+  --sidebar-border: hsl(217, 33%, 20%);
+  --sidebar-ring: hsl(221, 83%, 53%);
+
+  /* LeetCode difficulty colors */
+  --leetcode-easy: hsl(160, 84%, 39%);
   --leetcode-medium: hsl(38, 92%, 50%);
-  --leetcode-hard: hsl(0, 84%, 60%);
-  --leetcode-primary: hsl(207, 90%, 54%);
+  --leetcode-hard: hsl(0, 72%, 51%);
+  --leetcode-primary: hsl(221, 83%, 53%);
 }
 
 .dark {
-  --background: hsl(240, 10%, 3.9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(240, 3.7%, 15.9%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(240, 3.7%, 15.9%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
+  --background: hsl(222, 47%, 6%);
+  --foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217, 33%, 15%);
+  --muted-foreground: hsl(215, 20%, 65%);
+  --popover: hsl(222, 47%, 8%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 47%, 9%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 33%, 18%);
+  --input: hsl(217, 33%, 18%);
+  --primary: hsl(217, 91%, 60%);
+  --primary-foreground: hsl(222, 47%, 11%);
+  --secondary: hsl(217, 33%, 17%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --accent: hsl(217, 33%, 17%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 62%, 45%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(217, 91%, 60%);
 }
 
 @layer base {
@@ -60,43 +80,69 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Subtle, modern scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(215, 16%, 80%) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(215, 16%, 80%);
+    border-radius: 9999px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(215, 16%, 65%);
+  }
+}
+
+@layer components {
+  /* Soft elevated card used across dashboards */
+  .card-elevated {
+    @apply bg-card border border-border rounded-xl shadow-sm;
+  }
+
+  /* Page shell padding + max width */
+  .page-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Gradient brand text */
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent;
   }
 }
 
 @layer utilities {
-  .leetcode-easy {
-    color: var(--leetcode-easy);
+  .leetcode-easy { color: var(--leetcode-easy); }
+  .leetcode-medium { color: var(--leetcode-medium); }
+  .leetcode-hard { color: var(--leetcode-hard); }
+  .bg-leetcode-easy { background-color: var(--leetcode-easy); }
+  .bg-leetcode-medium { background-color: var(--leetcode-medium); }
+  .bg-leetcode-hard { background-color: var(--leetcode-hard); }
+  .bg-leetcode-primary { background-color: var(--leetcode-primary); }
+  .text-leetcode-primary { color: var(--leetcode-primary); }
+  .border-leetcode-primary { border-color: var(--leetcode-primary); }
+
+  /* Entrance animation for cards/rows */
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out both;
   }
-  
-  .leetcode-medium {
-    color: var(--leetcode-medium);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
-  
-  .leetcode-hard {
-    color: var(--leetcode-hard);
-  }
-  
-  .bg-leetcode-easy {
-    background-color: var(--leetcode-easy);
-  }
-  
-  .bg-leetcode-medium {
-    background-color: var(--leetcode-medium);
-  }
-  
-  .bg-leetcode-hard {
-    background-color: var(--leetcode-hard);
-  }
-  
-  .bg-leetcode-primary {
-    background-color: var(--leetcode-primary);
-  }
-  
-  .text-leetcode-primary {
-    color: var(--leetcode-primary);
-  }
-  
-  .border-leetcode-primary {
-    border-color: var(--leetcode-primary);
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

@@ -154,6 +154,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update a single student's editable fields (currently just the GitHub handle).
+  // Used by the admin "GitHub Handles" manager to drive avatar photos.
+  app.patch("/api/students/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { githubUsername } = req.body ?? {};
+
+      // Normalize: trim, strip a leading "@" or a full github.com URL, and
+      // treat an empty string as clearing the handle (null).
+      let handle: string | null = null;
+      if (typeof githubUsername === "string" && githubUsername.trim() !== "") {
+        handle = githubUsername
+          .trim()
+          .replace(/^@/, "")
+          .replace(/^https?:\/\/(www\.)?github\.com\//i, "")
+          .replace(/\/+$/, "");
+      }
+
+      const updated = await storage.updateStudent(id, { githubUsername: handle });
+      if (!updated) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating student:", error);
+      res.status(500).json({ error: "Failed to update student" });
+    }
+  });
+
   // Get student dashboard data
   app.get("/api/dashboard/student/:username", async (req, res) => {
     try {
@@ -287,7 +316,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: student.id,
             name: student.name,
             leetcodeUsername: student.leetcodeUsername,
-            leetcodeProfileLink: student.leetcodeProfileLink || `https://leetcode.com/u/${student.leetcodeUsername}/`
+            leetcodeProfileLink: student.leetcodeProfileLink || `https://leetcode.com/u/${student.leetcodeUsername}/`,
+            profilePhoto: student.profilePhoto,
+            githubUsername: student.githubUsername
           },
           stats: student.stats,
           weeklyProgress: student.weeklyProgress,

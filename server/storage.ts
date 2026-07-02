@@ -573,6 +573,7 @@ export class PostgreSQLStorage implements IStorage {
           leetcodeUsername: student.leetcodeUsername,
           leetcodeProfileLink: student.leetcodeProfileLink,
           profilePhoto: student.profilePhoto,
+          githubUsername: student.githubUsername,
           batch: student.batch,
           createdAt: student.createdAt
         },
@@ -899,6 +900,7 @@ export class PostgreSQLStorage implements IStorage {
           leetcodeUsername: student.leetcodeUsername,
           leetcodeProfileLink: student.leetcodeProfileLink,
           profilePhoto: student.profilePhoto,
+          githubUsername: student.githubUsername,
           batch: student.batch,
           createdAt: student.createdAt
         },

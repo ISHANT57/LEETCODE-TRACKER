@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import StudentAvatar from '@/components/student-avatar';
+import PageHeader from '@/components/page-header';
 
-import { RefreshCw, Search, Trophy, TrendingUp, ExternalLink, Users, Clock } from 'lucide-react';
+import { RefreshCw, Search, Trophy, TrendingUp, ExternalLink, Users, Clock, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -19,6 +20,7 @@ interface StudentRanking {
     leetcodeUsername: string;
     leetcodeProfileLink: string;
     profilePhoto?: string;
+    githubUsername?: string | null;
   };
   stats: {
     totalSolved: number;
@@ -127,47 +129,34 @@ export default function RealTimeTracker() {
   }
 
   return (
-    <div className="flex-1 overflow-auto">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Real-Time Student Tracker</h1>
-            <p className="text-gray-600">
-              Complete rankings for all {rankings?.length || 0} students with live data
-            </p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <Clock className="h-4 w-4" />
-              <span>Last updated: {lastSync.toLocaleTimeString()}</span>
-              {autoRefresh && <span className="text-green-600">(Auto-refresh ON)</span>}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAutoRefresh(!autoRefresh)}
-            >
-              {autoRefresh ? 'Disable' : 'Enable'} Auto-refresh
+    <div>
+      <PageHeader
+        icon={<Activity size={20} />}
+        title="Real-Time Student Tracker"
+        description={`Complete rankings for all ${rankings?.length || 0} students with live data`}
+        actions={
+          <>
+            <span className="mr-1 hidden items-center gap-1.5 text-xs text-muted-foreground lg:flex">
+              <Clock className="h-3.5 w-3.5" />
+              {lastSync.toLocaleTimeString()}
+              {autoRefresh && <span className="text-emerald-600 font-medium">· Auto</span>}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => setAutoRefresh(!autoRefresh)}>
+              {autoRefresh ? 'Disable' : 'Enable'} Auto
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleManualRefresh}
-              disabled={isRefetching}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
-              Refresh
+            <Button variant="outline" size="sm" onClick={handleManualRefresh} disabled={isRefetching}>
+              <RefreshCw className={`h-4 w-4 sm:mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
-            <Button onClick={handleFullSync} className="bg-blue-600 hover:bg-blue-700">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Full Sync
+            <Button onClick={handleFullSync} size="sm">
+              <RefreshCw className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Full Sync</span>
             </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
-      <div className="p-6 space-y-6">
+      <div className="page-container py-6 space-y-6">
         {/* Overview Stats */}
         {adminData && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -272,14 +261,12 @@ export default function RealTimeTracker() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <Avatar className="h-10 w-10">
-                            {student.student.profilePhoto && (
-                              <AvatarImage src={student.student.profilePhoto} alt={student.student.name} />
-                            )}
-                            <AvatarFallback className="bg-blue-100">
-                              {student.student.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                          <StudentAvatar
+                            name={student.student.name}
+                            githubUsername={student.student.githubUsername}
+                            profilePhoto={student.student.profilePhoto}
+                            size={40}
+                          />
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
                               {student.student.name}
