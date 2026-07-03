@@ -377,7 +377,11 @@ export class LeetCodeService {
 
       // Update weekly trend
       await this.updateWeeklyTrend(studentId, stats.totalSolved);
-      
+
+      // Update anchored Week 1–4 progress (weeks run in 7-day blocks from
+      // WEEK_ANCHOR; the current week's score refreshes on every daily sync).
+      await this.updateWeeklyProgressAnchored(studentId, stats.totalSolved);
+
       // Check for badge achievements
       await this.checkBadgeAchievements(studentId, stats, dailyIncrement);
 
@@ -449,6 +453,69 @@ export class LeetCodeService {
     const failed = results.length - success;
 
     return { success, failed };
+  }
+
+  // Weekly tracking anchor: Week 1 begins on this date and each subsequent
+  // week is a fixed 7-day block (Week 1 = Jul 1–7, Week 2 = Jul 8–14, …).
+  private static readonly WEEK_ANCHOR = Date.UTC(2026, 6, 1); // 2026-07-01 (month is 0-based)
+
+  /** Current 1-based week number relative to WEEK_ANCHOR (>=1). */
+  private currentWeekIndex(): number {
+    const now = new Date();
+    const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const diffDays = Math.floor((todayUTC - LeetCodeService.WEEK_ANCHOR) / (24 * 60 * 60 * 1000));
+    if (diffDays < 0) return 1; // before the anchor → treat as Week 1 baseline
+    return Math.floor(diffDays / 7) + 1;
+  }
+
+  /**
+   * Populate the Week 1–4 progress snapshot from live sync data, anchored to
+   * WEEK_ANCHOR. The current week's score is set to the latest cumulative
+   * total on every sync (so it updates daily); already-elapsed weeks stay
+   * frozen at their end-of-week value, and not-yet-reached weeks track the
+   * current total so their progress delta reads 0 instead of going negative.
+   */
+  private async updateWeeklyProgressAnchored(studentId: string, totalSolved: number): Promise<void> {
+    const week = Math.min(4, Math.max(1, this.currentWeekIndex()));
+    const existing = await storage.getWeeklyProgressData(studentId);
+
+    const scores = [
+      existing?.week1Score ?? 0,
+      existing?.week2Score ?? 0,
+      existing?.week3Score ?? 0,
+      existing?.week4Score ?? 0,
+    ];
+
+    // Set the current week and every future week to the current cumulative
+    // total; leave already-completed weeks (index < week-1) untouched/frozen.
+    for (let i = week - 1; i < 4; i++) scores[i] = totalSolved;
+
+    const [week1Score, week2Score, week3Score, week4Score] = scores;
+    const week2Progress = week2Score - week1Score;
+    const week3Progress = week3Score - week2Score;
+    const week4Progress = week4Score - week3Score;
+    const totalScore = week1Score + week2Score + week3Score + week4Score;
+    const deltas = [week2Progress, week3Progress, week4Progress];
+    const averageWeeklyGrowth = Math.round(deltas.reduce((a, b) => a + b, 0) / deltas.length);
+
+    const payload = {
+      studentId,
+      week1Score,
+      week2Score,
+      week3Score,
+      week4Score,
+      week2Progress,
+      week3Progress,
+      week4Progress,
+      totalScore,
+      averageWeeklyGrowth,
+    };
+
+    if (existing) {
+      await storage.updateWeeklyProgressData(studentId, payload);
+    } else {
+      await storage.createWeeklyProgressData(payload);
+    }
   }
 
   private async updateWeeklyTrend(studentId: string, totalSolved: number): Promise<void> {
