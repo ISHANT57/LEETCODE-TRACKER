@@ -11,6 +11,7 @@ export const students = pgTable("students", {
   profilePhoto: text("profile_photo"), // URL to LeetCode profile photo
   githubUsername: text("github_username"), // GitHub handle; avatar served from https://github.com/<handle>.png
   batch: text("batch").notNull().default("2028"), // "2027" or "2028"
+  weeklyGoal: integer("weekly_goal").notNull().default(25), // target problems solved per week
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -171,8 +172,19 @@ export interface StudentDashboardData {
   universitySize: number;
   badges: Badge[];
   weeklyProgress: number[];
+  // Problems solved so far in the current week (for goal tracking).
+  currentWeeklyProgress: number;
   dailyActivity: { date: string; count: number }[];
   yearlyActivity: { date: string; count: number }[];
+  // Cumulative solved counts per difficulty over time (oldest -> newest),
+  // used to render the "progress over time" difficulty trend chart.
+  difficultyHistory: {
+    date: string;
+    easy: number;
+    medium: number;
+    hard: number;
+    total: number;
+  }[];
 }
 
 export interface AdminDashboardData {

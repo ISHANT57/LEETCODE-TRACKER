@@ -481,7 +481,18 @@ export class PostgreSQLStorage implements IStorage {
 
     // Calculate batch and university rankings
     const rankings = await this.calculateStudentRankings(studentId, stats.totalSolved);
-    
+
+    // Problems solved so far this week: latest total minus the oldest total
+    // recorded within the last 7 days (dailyProgress is newest-first).
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const oneWeekAgoStr = oneWeekAgo.toISOString().split('T')[0];
+    const weekEntries = dailyProgress.filter(p => p.date >= oneWeekAgoStr);
+    const oldestInWeek = weekEntries[weekEntries.length - 1];
+    const currentWeeklyProgress = weekEntries.length > 0
+      ? Math.max(0, (stats.totalSolved || 0) - (oldestInWeek?.totalSolved || 0))
+      : 0;
+
     return {
       student,
       stats,
@@ -495,11 +506,20 @@ export class PostgreSQLStorage implements IStorage {
       universitySize: rankings.universitySize,
       badges,
       weeklyProgress: weeklyTrends.map(t => t.weeklyIncrement),
+      currentWeeklyProgress,
       dailyActivity: dailyProgress.map(p => ({
         date: p.date,
         count: p.dailyIncrement
       })),
-      yearlyActivity
+      yearlyActivity,
+      // dailyProgress is newest-first; reverse for a chronological trend line.
+      difficultyHistory: [...dailyProgress].reverse().map(p => ({
+        date: p.date,
+        easy: p.easySolved,
+        medium: p.mediumSolved,
+        hard: p.hardSolved,
+        total: p.totalSolved,
+      })),
     };
   }
 
@@ -575,6 +595,7 @@ export class PostgreSQLStorage implements IStorage {
           profilePhoto: student.profilePhoto,
           githubUsername: student.githubUsername,
           batch: student.batch,
+          weeklyGoal: student.weeklyGoal,
           createdAt: student.createdAt
         },
         weeklyScore: student.stats.totalSolved
@@ -902,6 +923,7 @@ export class PostgreSQLStorage implements IStorage {
           profilePhoto: student.profilePhoto,
           githubUsername: student.githubUsername,
           batch: student.batch,
+          weeklyGoal: student.weeklyGoal,
           createdAt: student.createdAt
         },
         weeklyScore: student.stats.totalSolved

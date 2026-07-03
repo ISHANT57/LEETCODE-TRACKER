@@ -183,6 +183,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update a student's weekly goal (target problems per week)
+  app.patch("/api/students/:id/goal", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { weeklyGoal } = req.body;
+      const goal = Number(weeklyGoal);
+      if (!Number.isFinite(goal) || goal < 1 || goal > 1000) {
+        return res.status(400).json({ error: "weeklyGoal must be between 1 and 1000" });
+      }
+      const updated = await storage.updateStudent(id, { weeklyGoal: Math.round(goal) });
+      if (!updated) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+      res.json({ message: "Weekly goal updated", weeklyGoal: updated.weeklyGoal });
+    } catch (error) {
+      console.error('Error updating weekly goal:', error);
+      res.status(500).json({ error: "Failed to update weekly goal" });
+    }
+  });
+
   // Get student dashboard data
   app.get("/api/dashboard/student/:username", async (req, res) => {
     try {
