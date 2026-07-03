@@ -21,9 +21,9 @@ export default function Leaderboard() {
   };
 
   const rowStyle = (rank: number) => {
-    if (rank === 1) return "border-amber-200 bg-gradient-to-r from-amber-50 to-transparent";
-    if (rank === 2) return "border-slate-200 bg-gradient-to-r from-slate-50 to-transparent";
-    if (rank === 3) return "border-orange-200 bg-gradient-to-r from-orange-50 to-transparent";
+    if (rank === 1) return "border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent";
+    if (rank === 2) return "border-slate-400/30 bg-gradient-to-r from-slate-400/10 to-transparent";
+    if (rank === 3) return "border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-transparent";
     return "border-border bg-card";
   };
 
@@ -37,9 +37,9 @@ export default function Leaderboard() {
 
       <div className="page-container py-6">
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-            <h3 className="font-medium text-red-800">Error loading leaderboard</h3>
-            <p className="mt-1 text-sm text-red-600">Failed to load leaderboard data.</p>
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+            <h3 className="font-medium text-destructive">Error loading leaderboard</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Failed to load leaderboard data.</p>
           </div>
         )}
 
@@ -52,9 +52,9 @@ export default function Leaderboard() {
         )}
 
         {!isLoading && !error && (!data || data.length === 0) && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <h3 className="font-medium text-amber-800">No leaderboard data</h3>
-            <p className="mt-1 text-sm text-amber-600">No student progress data available yet.</p>
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <h3 className="font-medium text-amber-600 dark:text-amber-400">No leaderboard data</h3>
+            <p className="mt-1 text-sm text-muted-foreground">No student progress data available yet.</p>
           </div>
         )}
 
@@ -79,7 +79,7 @@ export default function Leaderboard() {
                           githubUsername={entry.student.githubUsername}
                           profilePhoto={entry.student.profilePhoto}
                           size={44}
-                          className="ring-2 ring-white shadow-sm"
+                          className="ring-2 ring-card shadow-sm"
                         />
                         <div className="min-w-0">
                           <p className="truncate text-base font-semibold text-foreground">

@@ -78,28 +78,28 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="flex-1 p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h3 className="text-red-800 font-medium">Error loading dashboard</h3>
-          <p className="text-red-600 text-sm mt-1">
+      <div className="page-container py-6">
+        <Card className="border-destructive/30 bg-destructive/5 p-6">
+          <h3 className="font-semibold text-destructive">Error loading dashboard</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             Failed to load admin data. Please try refreshing or initialize students first.
           </p>
           <Button onClick={handleInitStudents} className="mt-3" variant="outline">
             Initialize Students
           </Button>
-        </div>
+        </Card>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-6">
+      <div className="page-container py-6">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-slate-200 rounded w-1/3"></div>
+          <div className="h-8 w-1/3 rounded bg-muted"></div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-slate-200 rounded"></div>
+              <div key={i} className="h-24 rounded-xl bg-muted"></div>
             ))}
           </div>
         </div>
@@ -109,16 +109,16 @@ export default function AdminDashboard() {
 
   if (!data || data.totalStudents === 0) {
     return (
-      <div className="flex-1 p-6">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h3 className="text-yellow-800 font-medium">No students found</h3>
-          <p className="text-yellow-600 text-sm mt-1">
+      <div className="page-container py-6">
+        <Card className="border-amber-500/30 bg-amber-500/5 p-6">
+          <h3 className="font-semibold text-amber-600 dark:text-amber-400">No students found</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             Please initialize the student database first.
           </p>
           <Button onClick={handleInitStudents} className="mt-3">
             Initialize Students
           </Button>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
               onClick={handleExportCSV}
               variant="outline"
               size="sm"
-              className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+              className="text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
             >
               <Download className="mr-2" size={16} />
               <span className="hidden sm:inline">Export CSV</span>
@@ -193,15 +193,17 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="space-y-3">
               {data.leaderboard.slice(0, 5).map((entry, index) => (
-                <div 
+                <div
                   key={entry.student.id}
-                  className={`flex items-center justify-between p-4 rounded-lg border ${
-                    index === 0 ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200' : 'bg-slate-50 border-slate-200'
+                  className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${
+                    index === 0
+                      ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent'
+                      : 'border-border/70 bg-muted/40 hover:bg-muted/60'
                   }`}
                 >
                   <div className="flex items-center space-x-4">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${
-                      index === 0 ? 'bg-yellow-400' : index === 1 ? 'bg-slate-400' : 'bg-amber-600'
+                      index === 0 ? 'bg-amber-500' : index === 1 ? 'bg-slate-400' : 'bg-amber-600'
                     }`}>
                       {entry.rank}
                     </div>
@@ -212,13 +214,13 @@ export default function AdminDashboard() {
                       size={32}
                     />
                     <div>
-                      <p className="font-medium text-slate-900">{entry.student.name}</p>
-                      <p className="text-xs text-slate-500">@{entry.student.leetcodeUsername}</p>
+                      <p className="font-medium text-foreground">{entry.student.name}</p>
+                      <p className="text-xs text-muted-foreground">@{entry.student.leetcodeUsername}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-slate-900">+{entry.weeklyScore}</p>
-                    <p className="text-xs text-slate-500">this week</p>
+                    <p className="font-bold text-foreground">+{entry.weeklyScore}</p>
+                    <p className="text-xs text-muted-foreground">this week</p>
                   </div>
                 </div>
               ))}

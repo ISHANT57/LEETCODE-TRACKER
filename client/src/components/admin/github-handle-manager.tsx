@@ -60,7 +60,7 @@ export default function GithubHandleManager({ data }: GithubHandleManagerProps) 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Github size={16} />
         <span>
           Set each student's GitHub username to show their photo. Leave blank to
@@ -69,7 +69,7 @@ export default function GithubHandleManager({ data }: GithubHandleManagerProps) 
       </div>
 
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
         <Input
           placeholder="Search by name or username…"
           value={filter}
@@ -87,7 +87,7 @@ export default function GithubHandleManager({ data }: GithubHandleManagerProps) 
           return (
             <div
               key={student.id}
-              className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3"
+              className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
             >
               <StudentAvatar
                 name={student.name}
@@ -96,9 +96,9 @@ export default function GithubHandleManager({ data }: GithubHandleManagerProps) 
                 size={40}
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-900">{student.name}</p>
+                <p className="truncate text-sm font-medium text-foreground">{student.name}</p>
                 <div className="mt-1 flex items-center gap-1">
-                  <span className="text-xs text-slate-400">github.com/</span>
+                  <span className="text-xs text-muted-foreground">github.com/</span>
                   <Input
                     value={draft}
                     placeholder="handle"

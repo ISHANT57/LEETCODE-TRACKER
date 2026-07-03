@@ -40,23 +40,23 @@ export default function StudentTable({ data }: StudentTableProps) {
                     size={32}
                     fallbackClassName="text-xs"
                   />
-                  <span className="font-medium text-slate-900">{student.name}</span>
+                  <span className="font-medium text-foreground">{student.name}</span>
                 </div>
               </TableCell>
               <TableCell>
-                <a 
-                  href={student.leetcodeProfileLink} 
-                  target="_blank" 
+                <a
+                  href={student.leetcodeProfileLink}
+                  target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                  className="text-primary hover:underline text-sm font-medium flex items-center gap-1"
                 >
                   @{student.leetcodeUsername}
                   <ExternalLink size={12} />
                 </a>
               </TableCell>
-              <TableCell className="font-semibold">{student.stats.totalSolved}</TableCell>
+              <TableCell className="font-semibold text-foreground">{student.stats.totalSolved}</TableCell>
               <TableCell>
-                <div className="text-sm font-medium text-gray-700">
+                <div className="text-sm font-medium text-muted-foreground">
                   {student.stats.ranking > 0 ? `#${student.stats.ranking.toLocaleString()}` : 'Not ranked'}
                 </div>
               </TableCell>
@@ -74,22 +74,22 @@ export default function StudentTable({ data }: StudentTableProps) {
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-1">
-                  <Flame className={student.streak > 0 ? "text-orange-500" : "text-gray-400"} size={16} />
-                  <span className={student.streak > 0 ? "font-medium" : "text-slate-500"}>
+                  <Flame className={student.streak > 0 ? "text-orange-500" : "text-muted-foreground/40"} size={16} />
+                  <span className={student.streak > 0 ? "font-medium text-foreground" : "text-muted-foreground"}>
                     {student.streak}
                   </span>
                 </div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-1">
-                  <Flame className={student.maxStreak > 0 ? "text-red-500" : "text-gray-400"} size={16} />
-                  <span className={student.maxStreak > 0 ? "font-medium text-red-600" : "text-slate-500"}>
+                  <Flame className={student.maxStreak > 0 ? "text-red-500" : "text-muted-foreground/40"} size={16} />
+                  <span className={student.maxStreak > 0 ? "font-medium text-red-600 dark:text-red-400" : "text-muted-foreground"}>
                     {student.maxStreak}
                   </span>
                 </div>
               </TableCell>
               <TableCell>
-                <span className="font-medium text-emerald-600">
+                <span className="font-medium text-emerald-600 dark:text-emerald-400">
                   {student.totalActiveDays}
                 </span>
               </TableCell>
