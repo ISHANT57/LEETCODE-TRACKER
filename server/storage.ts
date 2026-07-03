@@ -29,6 +29,37 @@ import {
 import { db } from "./db";
 import { eq, desc, sql, and } from "drizzle-orm";
 
+// Weekly tracking anchor — Week 1 starts here, then fixed 7-day blocks.
+// Must stay in sync with WEEK_ANCHOR in services/leetcode.ts.
+const WEEK_ANCHOR_UTC = Date.UTC(2026, 6, 1); // 2026-07-01 (month is 0-based)
+
+/** ISO date (YYYY-MM-DD) of the start of the current anchored week. */
+function currentWeekStartStr(): string {
+  const now = new Date();
+  const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const diffDays = Math.floor((todayUTC - WEEK_ANCHOR_UTC) / 86_400_000);
+  const weekIdx = diffDays < 0 ? 0 : Math.floor(diffDays / 7);
+  const weekStartUTC = WEEK_ANCHOR_UTC + weekIdx * 7 * 86_400_000;
+  return new Date(weekStartUTC).toISOString().split("T")[0];
+}
+
+/**
+ * Real "problems solved this week" from actual daily data. progressArr is
+ * newest-first. Baseline is the cumulative total as of the last record BEFORE
+ * the current anchored week starts; if tracking only began this week, we fall
+ * back to the earliest record we have this week. Never negative.
+ */
+function weeklyIncrementFromDaily(progressArr: DailyProgress[]): number {
+  if (!progressArr.length) return 0;
+  const weekStart = currentWeekStartStr();
+  const latestTotal = progressArr[0]?.totalSolved || 0;
+  const beforeWeek = progressArr.find((p) => p.date < weekStart); // newest before week
+  const baseline = beforeWeek
+    ? beforeWeek.totalSolved
+    : progressArr[progressArr.length - 1]?.totalSolved || 0;
+  return Math.max(0, latestTotal - baseline);
+}
+
 export interface IStorage {
   // Students
   getStudent(id: string): Promise<Student | undefined>;
@@ -482,16 +513,9 @@ export class PostgreSQLStorage implements IStorage {
     // Calculate batch and university rankings
     const rankings = await this.calculateStudentRankings(studentId, stats.totalSolved);
 
-    // Problems solved so far this week: latest total minus the oldest total
-    // recorded within the last 7 days (dailyProgress is newest-first).
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const oneWeekAgoStr = oneWeekAgo.toISOString().split('T')[0];
-    const weekEntries = dailyProgress.filter(p => p.date >= oneWeekAgoStr);
-    const oldestInWeek = weekEntries[weekEntries.length - 1];
-    const currentWeeklyProgress = weekEntries.length > 0
-      ? Math.max(0, (stats.totalSolved || 0) - (oldestInWeek?.totalSolved || 0))
-      : 0;
+    // Problems actually solved during the current anchored week (from real
+    // daily data), consistent with the July-1 weekly tracking.
+    const currentWeeklyProgress = weeklyIncrementFromDaily(dailyProgress);
 
     return {
       student,
@@ -540,9 +564,8 @@ export class PostgreSQLStorage implements IStorage {
 
       const stats = this.statsFromProgress(latestProgress);
 
-      // Calculate real-time weekly progress
-      const currentWeeklyProgress = weeklyProgress ?
-        (latestProgress?.totalSolved || 0) - (weeklyProgress.week4Score || 0) : 0;
+      // Real problems solved this week, from actual daily data.
+      const currentWeeklyProgress = weeklyIncrementFromDaily(progressArr);
 
       // Determine status based on weekly progress thresholds
       let status = 'inactive';
@@ -583,7 +606,7 @@ export class PostgreSQLStorage implements IStorage {
     const avgMaxStreak = totalStudents > 0 ? studentsWithStats.reduce((sum, s) => sum + s.maxStreak, 0) / totalStudents : 0;
 
     const leaderboard = studentsWithStats
-      .sort((a, b) => b.stats.totalSolved - a.stats.totalSolved)
+      .sort((a, b) => b.weeklyProgress - a.weeklyProgress)
       .slice(0, 10)
       .map((student, index) => ({
         rank: index + 1,
@@ -598,7 +621,7 @@ export class PostgreSQLStorage implements IStorage {
           weeklyGoal: student.weeklyGoal,
           createdAt: student.createdAt
         },
-        weeklyScore: student.stats.totalSolved
+        weeklyScore: student.weeklyProgress
       }));
 
     return {
@@ -621,7 +644,7 @@ export class PostgreSQLStorage implements IStorage {
 
     const studentsWithScores = students.map((student) => ({
       student,
-      weeklyScore: progressByStudent.get(student.id)?.[0]?.totalSolved || 0,
+      weeklyScore: weeklyIncrementFromDaily(progressByStudent.get(student.id) || []),
     }));
 
     return studentsWithScores
@@ -876,12 +899,8 @@ export class PostgreSQLStorage implements IStorage {
 
       const stats = this.statsFromProgress(latestProgress);
 
-      // Calculate weekly progress: oldest entry within the last 7 days.
-      const weekEntries = progressArr.filter(p => p.date >= oneWeekAgoStr);
-      const oldestInWeek = weekEntries[weekEntries.length - 1];
-      const currentWeeklyProgress = weekEntries.length > 0
-        ? (latestProgress?.totalSolved || 0) - (oldestInWeek?.totalSolved || 0)
-        : 0;
+      // Real problems solved during the current anchored week.
+      const currentWeeklyProgress = weeklyIncrementFromDaily(progressArr);
 
       const status = this.calculateStatus(stats.totalSolved, currentWeeklyProgress);
 
@@ -911,7 +930,7 @@ export class PostgreSQLStorage implements IStorage {
     const avgMaxStreak = totalStudents > 0 ? studentsWithStats.reduce((sum, s) => sum + s.maxStreak, 0) / totalStudents : 0;
 
     const leaderboard = studentsWithStats
-      .sort((a, b) => b.stats.totalSolved - a.stats.totalSolved)
+      .sort((a, b) => b.weeklyProgress - a.weeklyProgress)
       .slice(0, 10)
       .map((student, index) => ({
         rank: index + 1,
@@ -926,7 +945,7 @@ export class PostgreSQLStorage implements IStorage {
           weeklyGoal: student.weeklyGoal,
           createdAt: student.createdAt
         },
-        weeklyScore: student.stats.totalSolved
+        weeklyScore: student.weeklyProgress
       }));
 
     return {
@@ -950,7 +969,7 @@ export class PostgreSQLStorage implements IStorage {
 
     const studentsWithScores = batchStudents.map((student) => ({
       student,
-      weeklyScore: progressByStudent.get(student.id)?.[0]?.totalSolved || 0,
+      weeklyScore: weeklyIncrementFromDaily(progressByStudent.get(student.id) || []),
     }));
 
     return studentsWithScores
