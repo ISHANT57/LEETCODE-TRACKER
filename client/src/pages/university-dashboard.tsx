@@ -36,7 +36,7 @@ import ScoreGauge from '@/components/score-gauge';
 import DirectoryCharts from '@/components/directory-charts';
 import { useGlobalSearch } from '@/lib/search-context';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, apiUrl } from '@/lib/queryClient';
 import { UniversityDashboardData } from '@shared/schema';
 import {
   ExternalLink,
@@ -313,7 +313,7 @@ export default function UniversityDashboard() {
               <SelectItem value="Underperforming">Underperforming</SelectItem>
             </SelectContent>
           </Select>
-          <Button size="sm" className="sm:ml-auto" onClick={() => window.open('/api/export/csv', '_blank')}>
+          <Button size="sm" className="sm:ml-auto" onClick={() => window.open(apiUrl('/api/export/csv'), '_blank')}>
             <Download className="h-4 w-4 mr-1.5" /> Export
           </Button>
         </div>

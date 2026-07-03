@@ -3,7 +3,7 @@ import { Download, RefreshCw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, apiUrl } from "@/lib/queryClient";
 import BatchStats from "@/components/admin/batch-stats";
 import StudentTable from "@/components/admin/student-table";
 import GithubHandleManager from "@/components/admin/github-handle-manager";
@@ -56,7 +56,9 @@ export default function AdminDashboard() {
   });
 
   const handleExportCSV = () => {
-    window.open('/api/export/csv', '_blank');
+    // Use apiUrl so the export hits the API origin (Render) when the frontend
+    // is deployed separately; falls back to a relative path in the monolith.
+    window.open(apiUrl('/api/export/csv'), '_blank');
   };
 
   const handleInitStudents = async () => {

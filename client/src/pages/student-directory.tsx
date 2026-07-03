@@ -24,6 +24,7 @@ import PageHeader from '@/components/page-header';
 import StatCard from '@/components/stat-card';
 import DirectoryCharts from '@/components/directory-charts';
 import { useGlobalSearch } from '@/lib/search-context';
+import { apiUrl } from '@/lib/queryClient';
 import { useMemo, useState } from 'react';
 import {
   Search,
@@ -312,7 +313,7 @@ export default function StudentDirectory() {
             variant="default"
             size="sm"
             className="sm:ml-auto"
-            onClick={() => window.open('/api/export/csv', '_blank')}
+            onClick={() => window.open(apiUrl('/api/export/csv'), '_blank')}
           >
             <Download className="h-4 w-4 mr-1.5" />
             Export
