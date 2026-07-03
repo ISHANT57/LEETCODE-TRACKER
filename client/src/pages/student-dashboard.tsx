@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import StatsOverview from "@/components/dashboard/stats-overview";
 import DifficultyBreakdown from "@/components/dashboard/difficulty-breakdown";
+import DifficultyTrend from "@/components/dashboard/difficulty-trend";
+import LanguageBreakdown from "@/components/dashboard/language-breakdown";
+import WeeklyGoal from "@/components/dashboard/weekly-goal";
 import WeeklyProgress from "@/components/dashboard/weekly-progress";
 import RecentBadges from "@/components/dashboard/recent-badges";
 import DailyActivity from "@/components/dashboard/daily-activity";
@@ -156,8 +159,11 @@ export default function StudentDashboard() {
       {/* Dashboard Content */}
       <div className="p-6 space-y-6">
         <StatsOverview data={data} />
-        
-        <RankingOverview data={data} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <WeeklyGoal data={data} username={username} />
+          <RankingOverview data={data} />
+        </div>
         
         <SubmissionStats data={data} />
         
@@ -165,7 +171,14 @@ export default function StudentDashboard() {
           <DifficultyBreakdown data={data} />
           <WeeklyProgress data={data} />
         </div>
-        
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <DifficultyTrend data={data} />
+          </div>
+          <LanguageBreakdown data={data} />
+        </div>
+
         <ActivityHeatmap data={data} />
         <RecentBadges data={data} />
         <DailyActivity data={data} />
