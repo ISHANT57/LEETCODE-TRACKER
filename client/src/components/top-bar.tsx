@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { Search, Bell, ChevronRight } from "lucide-react";
+import { Search, ChevronRight } from "lucide-react";
 import { useGlobalSearch } from "@/lib/search-context";
 import ThemeToggle from "@/components/theme-toggle";
+import NotificationsMenu from "@/components/notifications-menu";
+import AccountMenu from "@/components/account-menu";
 import { cn } from "@/lib/utils";
 
 // Human-readable breadcrumb trail derived from the current route.
@@ -83,19 +85,11 @@ export default function TopBar() {
       {/* Theme toggle */}
       <ThemeToggle />
 
-      {/* Notifications (decorative — no live feed yet) */}
-      <button
-        type="button"
-        aria-label="Notifications"
-        className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-      >
-        <Bell className="h-4.5 w-4.5" size={18} />
-      </button>
+      {/* Notifications — live, derived from real dashboard + sync data */}
+      <NotificationsMenu />
 
-      {/* Account */}
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-slate-700 to-slate-900 text-sm font-semibold text-white">
-        A
-      </div>
+      {/* Account menu */}
+      <AccountMenu />
     </header>
   );
 }
