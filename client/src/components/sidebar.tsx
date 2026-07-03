@@ -10,6 +10,7 @@ import {
   Building2,
   BookOpen,
   ShieldCheck,
+  GitCompare,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ const sections: NavSection[] = [
     label: "Overview",
     items: [
       { name: "All Students", href: "/", icon: Users },
+      { name: "Compare Students", href: "/compare", icon: GitCompare },
       { name: "University Dashboard", href: "/university", icon: Building2 },
     ],
   },
