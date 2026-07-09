@@ -19,6 +19,7 @@ import WeeklyProgressPage from "@/pages/WeeklyProgressPage";
 import BatchDashboard from "@/pages/batch-dashboard";
 import UniversityDashboard from "@/pages/university-dashboard";
 import NotFound from "@/pages/not-found";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 function Router() {
   return (
@@ -56,6 +57,7 @@ function App() {
           </div>
         </SearchProvider>
         <Toaster />
+        <InstallPrompt />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

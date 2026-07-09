@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(VITE_API_URL=https://example.onrender.com npm run build:client)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(grep -vE \"^\\\\s*#|^\\\\s*$\" .env.example)",
+      "Bash(curl -s -D - -o /tmp/export.csv \"http://127.0.0.1:5000/api/export/csv\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:5000/health)",
+      "Bash(curl -s -o /dev/null -w \"/api/students -> %{http_code}\\\\n\" http://127.0.0.1:5000/api/students)",
+      "Bash(curl -s -o /dev/null -w \"/api/export/csv -> %{http_code}\\\\n\" http://127.0.0.1:5000/api/export/csv)",
+      "Bash(npm run *)"
+    ]
+  }
+}
