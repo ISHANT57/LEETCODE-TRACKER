@@ -117,7 +117,10 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "overrides": {
+    "vite-plugin-pwa": {
+      "vite": "$vite"
+    }
   }
-
-  
 }
