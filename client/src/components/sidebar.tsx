@@ -63,11 +63,11 @@ function isActivePath(current: string, href: string): boolean {
   return current === href || current.startsWith(href + "/");
 }
 
-export default function Sidebar() {
+export default function Sidebar({ className, onNavigate }: { className?: string, onNavigate?: () => void }) {
   const [location] = useLocation();
 
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
+    <aside className={cn("hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border", className)}>
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 h-16 border-b border-sidebar-border">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-900/30">
@@ -93,6 +93,7 @@ export default function Sidebar() {
                 return (
                   <Link key={item.name} href={item.href}>
                     <div
+                      onClick={onNavigate}
                       className={cn(
                         "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all cursor-pointer",
                         active

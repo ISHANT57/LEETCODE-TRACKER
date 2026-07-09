@@ -236,7 +236,7 @@ export default function Compare() {
               <CardContent>
                 <div className="h-80 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: -16 }}>
+                    <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="metric" tick={{ fontSize: 12 }} />
                       <YAxis tick={{ fontSize: 12 }} />

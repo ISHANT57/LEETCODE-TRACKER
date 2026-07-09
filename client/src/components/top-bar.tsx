@@ -1,11 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Search, ChevronRight } from "lucide-react";
+import { Search, ChevronRight, Menu } from "lucide-react";
 import { useGlobalSearch } from "@/lib/search-context";
 import ThemeToggle from "@/components/theme-toggle";
 import NotificationsMenu from "@/components/notifications-menu";
 import AccountMenu from "@/components/account-menu";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import Sidebar from "@/components/sidebar";
 
 // Human-readable breadcrumb trail derived from the current route.
 function crumbsFor(path: string): string[] {
@@ -30,6 +33,7 @@ export default function TopBar() {
   const { query, setQuery } = useGlobalSearch();
   const inputRef = useRef<HTMLInputElement>(null);
   const crumbs = crumbsFor(location);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Cmd/Ctrl+K focuses global search.
   useEffect(() => {
@@ -46,6 +50,20 @@ export default function TopBar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6">
+      {/* Mobile Menu */}
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="md:hidden shrink-0">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="p-0 w-64 border-none">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+          <Sidebar className="flex md:flex w-full h-full" onNavigate={() => setMenuOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
       {/* Breadcrumb */}
       <nav className="hidden items-center gap-1.5 text-sm md:flex">
         {crumbs.map((c, i) => (
