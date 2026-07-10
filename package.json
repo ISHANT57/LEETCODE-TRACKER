@@ -3,17 +3,16 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
-
- "scripts": {
-  "dev": "cross-env NODE_ENV=development tsx server/index.ts",
-  "build": "vite build && node deploy-universal.js && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-  "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-  "build:client": "vite build",
-  "start": "cross-env NODE_ENV=production node dist/index.js",
-  "db:push": "drizzle-kit push"
-},
-
-
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development tsx server/index.ts",
+    "build": "vite build && node deploy-universal.js && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build:client": "vite build",
+    "start": "cross-env NODE_ENV=production node dist/index.js",
+    "db:push": "drizzle-kit push",
+    "assets:icons": "node scripts/generate-icons.mjs",
+    "assets:screenshots": "node scripts/capture-screenshots.mjs"
+  },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
@@ -50,7 +49,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "connect-pg-simple": "^10.0.0",
-     "cross-env": "^10.0.0",
+    "cross-env": "^10.0.0",
     "date-fns": "^3.6.0",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.39.3",
@@ -79,11 +78,11 @@
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.2.5",
     "vaul": "^1.1.2",
+    "vite": "^6.0.0",
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0",
-   "vite": "^6.0.0"
+    "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",
@@ -102,7 +101,10 @@
     "cross-env": "^10.0.0",
     "drizzle-kit": "^0.30.6",
     "esbuild": "^0.25.8",
+    "playwright": "^1.61.1",
+    "png-to-ico": "^3.0.2",
     "postcss": "^8.4.47",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.3",
     "typescript": "^5.6.3",

@@ -49,16 +49,16 @@ export default function TopBar() {
   }, [location, navigate]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6">
+    <header className="safe-top sticky top-0 z-30 flex min-h-16 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:gap-4 sm:px-6">
       {/* Mobile Menu */}
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="md:hidden shrink-0">
+          <Button variant="ghost" size="icon" aria-label="Open navigation menu" className="min-touch md:hidden shrink-0">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-0 w-64 border-none">
+        <SheetContent side="left" className="safe-top safe-bottom p-0 w-64 border-none">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <Sidebar className="flex md:flex w-full h-full" onNavigate={() => setMenuOpen(false)} />
         </SheetContent>

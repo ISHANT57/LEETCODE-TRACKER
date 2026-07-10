@@ -123,6 +123,24 @@
 }
 
 @layer utilities {
+  /* --- Android / notch safe-area helpers --- */
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-left { padding-left: env(safe-area-inset-left); }
+  .safe-right { padding-right: env(safe-area-inset-right); }
+  .safe-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  /* Adds the inset ON TOP of existing bottom spacing (for floating UI). */
+  .safe-inset-bottom { margin-bottom: env(safe-area-inset-bottom); }
+
+  /* Minimum 48px touch target for icon-only controls on touch devices only,
+     so desktop (fine pointer) keeps its existing compact sizing. */
+  @media (pointer: coarse) {
+    .min-touch { min-height: 48px; min-width: 48px; }
+  }
+
   .leetcode-easy { color: var(--leetcode-easy); }
   .leetcode-medium { color: var(--leetcode-medium); }
   .leetcode-hard { color: var(--leetcode-hard); }
@@ -147,5 +165,20 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-fade-in {
+    animation: none !important;
   }
 }
