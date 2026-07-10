@@ -9,6 +9,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
+import Login from "@/pages/login";
 
 // Route-level code splitting — each page becomes its own chunk, cutting the
 // initial JS bundle and improving first paint. UI is unchanged.
@@ -54,24 +56,49 @@ function Router() {
   );
 }
 
+// The authenticated app shell. Only rendered once a session exists.
+function AppShell() {
+  return (
+    <SearchProvider>
+      <div className="flex h-screen overflow-hidden bg-background text-foreground">
+        <Sidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <TopBar />
+          <main className="flex flex-1 flex-col overflow-y-auto">
+            <Router />
+          </main>
+        </div>
+      </div>
+    </SearchProvider>
+  );
+}
+
+// Gate: whole app is behind login. While the session loads we show a spinner;
+// with no session we show the Login page; otherwise the full dashboard.
+function AuthGate() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-background" role="status" aria-label="Loading">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+      </div>
+    );
+  }
+
+  return session ? <AppShell /> : <Login />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-        <SearchProvider>
-          <div className="flex h-screen overflow-hidden bg-background text-foreground">
-            <Sidebar />
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <TopBar />
-              <main className="flex flex-1 flex-col overflow-y-auto">
-                <Router />
-              </main>
-            </div>
-          </div>
-        </SearchProvider>
-        <Toaster />
-        <InstallPrompt />
+          <AuthProvider>
+            <AuthGate />
+          </AuthProvider>
+          <Toaster />
+          <InstallPrompt />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -36,16 +36,16 @@ export default function BadgesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="flex-1 py-6">
+        <div className="page-container">
           <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-slate-200 rounded w-48"></div>
+            <div className="h-8 bg-muted rounded w-48"></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-32 bg-slate-200 rounded"></div>
+                <div key={i} className="h-32 bg-muted rounded"></div>
               ))}
             </div>
-            <div className="h-96 bg-slate-200 rounded"></div>
+            <div className="h-96 bg-muted rounded"></div>
           </div>
         </div>
       </div>
@@ -54,11 +54,11 @@ export default function BadgesPage() {
 
   if (!data) {
     return (
-      <div className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-slate-900 mb-8">🏅 Badge System</h1>
+      <div className="flex-1 py-6">
+        <div className="page-container">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-8">🏅 Badge System</h1>
           <div className="text-center py-12">
-            <p className="text-slate-600">No badge data available</p>
+            <p className="text-muted-foreground">No badge data available</p>
           </div>
         </div>
       </div>
@@ -81,12 +81,12 @@ export default function BadgesPage() {
   }, {} as Record<string, BadgeWithStudent[]>);
 
   return (
-    <div className="flex-1 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="flex-1 py-6">
+      <div className="page-container">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">🏅 Badge System</h1>
-          <p className="text-slate-600">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-2">🏅 Badge System</h1>
+          <p className="text-muted-foreground">
             Auto-assigned badges recognizing student achievements and milestones
           </p>
         </div>
@@ -97,11 +97,11 @@ export default function BadgesPage() {
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mr-4">
-                  <Trophy className="w-6 h-6 text-blue-600" />
+                  <Trophy className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-600">Total Badges</p>
-                  <p className="text-2xl font-bold text-slate-900">{data.badgeStats.totalBadges}</p>
+                  <p className="text-sm text-muted-foreground">Total Badges</p>
+                  <p className="text-2xl font-bold text-foreground">{data.badgeStats.totalBadges}</p>
                 </div>
               </div>
             </CardContent>
@@ -114,8 +114,8 @@ export default function BadgesPage() {
                   <Users className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-600">Badge Recipients</p>
-                  <p className="text-2xl font-bold text-slate-900">{data.badgeStats.totalRecipients}</p>
+                  <p className="text-sm text-muted-foreground">Badge Recipients</p>
+                  <p className="text-2xl font-bold text-foreground">{data.badgeStats.totalRecipients}</p>
                 </div>
               </div>
             </CardContent>
@@ -128,8 +128,8 @@ export default function BadgesPage() {
                   <TrendingUp className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-600">Most Popular</p>
-                  <p className="text-lg font-bold text-slate-900">
+                  <p className="text-sm text-muted-foreground">Most Popular</p>
+                  <p className="text-lg font-bold text-foreground">
                     {BADGE_TYPES[data.badgeStats.mostPopularBadge as keyof typeof BADGE_TYPES]?.title || 'N/A'}
                   </p>
                 </div>
@@ -150,13 +150,13 @@ export default function BadgesPage() {
                 const count = groupedBadges[badgeType]?.length || 0;
                 
                 return (
-                  <div key={badgeType} className="flex items-center p-4 border rounded-lg hover:bg-slate-50">
+                  <div key={badgeType} className="flex items-center p-4 border rounded-lg hover:bg-muted/60">
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mr-4 bg-gradient-to-br ${badgeInfo.gradient} text-white`}>
                       <span className="text-2xl">{badgeInfo.emoji}</span>
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-slate-900">{badgeInfo.title}</h3>
-                      <p className="text-sm text-slate-600 mb-2">{badgeInfo.description}</p>
+                      <h3 className="font-semibold text-foreground">{badgeInfo.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-2">{badgeInfo.description}</p>
                       <Badge variant="secondary">{count} earned</Badge>
                     </div>
                   </div>
@@ -178,7 +178,7 @@ export default function BadgesPage() {
             {/* Search and Filter */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search students or badges..."
                   value={searchTerm}
@@ -210,25 +210,25 @@ export default function BadgesPage() {
                   {filteredBadges.map((badge) => {
                     const badgeInfo = BADGE_TYPES[badge.badgeType as keyof typeof BADGE_TYPES];
                     return (
-                      <div key={badge.id} className="flex items-center p-4 border rounded-lg hover:bg-slate-50">
+                      <div key={badge.id} className="flex items-center p-4 border rounded-lg hover:bg-muted/60">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 bg-gradient-to-br ${badgeInfo.gradient} text-white`}>
                           <span className="text-lg">{badgeInfo.emoji}</span>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-slate-900">{badgeInfo.title}</h3>
+                            <h3 className="font-semibold text-foreground">{badgeInfo.title}</h3>
                             <Badge variant="outline">{badge.student.name}</Badge>
                           </div>
-                          <p className="text-sm text-slate-600">{badgeInfo.description}</p>
+                          <p className="text-sm text-muted-foreground">{badgeInfo.description}</p>
                         </div>
-                        <div className="text-right text-sm text-slate-500">
+                        <div className="text-right text-sm text-muted-foreground">
                           {badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'N/A'}
                         </div>
                       </div>
                     );
                   })}
                   {filteredBadges.length === 0 && (
-                    <div className="text-center py-8 text-slate-500">
+                    <div className="text-center py-8 text-muted-foreground">
                       No badges found matching your criteria
                     </div>
                   )}
@@ -251,7 +251,7 @@ export default function BadgesPage() {
                       </div>
                       <div>
                         <CardTitle>{badgeInfo.title}</CardTitle>
-                        <p className="text-sm text-slate-600">{badgeInfo.description}</p>
+                        <p className="text-sm text-muted-foreground">{badgeInfo.description}</p>
                       </div>
                       <Badge variant="secondary" className="ml-auto">{badges.length} earned</Badge>
                     </div>
@@ -261,14 +261,14 @@ export default function BadgesPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {badges.map((badge) => (
                           <div key={badge.id} className="flex items-center p-3 border rounded-lg">
-                            <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center mr-3">
-                              <span className="text-xs font-semibold text-slate-600">
+                            <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center mr-3">
+                              <span className="text-xs font-semibold text-muted-foreground">
                                 {badge.student.name.split(' ').map(n => n[0]).join('')}
                               </span>
                             </div>
                             <div className="flex-1">
                               <p className="font-medium text-sm">{badge.student.name}</p>
-                              <p className="text-xs text-slate-500">
+                              <p className="text-xs text-muted-foreground">
                                 {badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'N/A'}
                               </p>
                             </div>
@@ -276,7 +276,7 @@ export default function BadgesPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-slate-500 text-center py-4">No one has earned this badge yet</p>
+                      <p className="text-muted-foreground text-center py-4">No one has earned this badge yet</p>
                     )}
                   </CardContent>
                 </Card>
@@ -294,25 +294,25 @@ export default function BadgesPage() {
                   {data.badgeStats.recentBadges.map((badge) => {
                     const badgeInfo = BADGE_TYPES[badge.badgeType as keyof typeof BADGE_TYPES];
                     return (
-                      <div key={badge.id} className="flex items-center p-4 border rounded-lg hover:bg-slate-50">
+                      <div key={badge.id} className="flex items-center p-4 border rounded-lg hover:bg-muted/60">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 bg-gradient-to-br ${badgeInfo.gradient} text-white`}>
                           <span className="text-lg">{badgeInfo.emoji}</span>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-slate-900">{badgeInfo.title}</h3>
+                            <h3 className="font-semibold text-foreground">{badgeInfo.title}</h3>
                             <Badge variant="outline">{badge.student.name}</Badge>
                           </div>
-                          <p className="text-sm text-slate-600">{badgeInfo.description}</p>
+                          <p className="text-sm text-muted-foreground">{badgeInfo.description}</p>
                         </div>
-                        <div className="text-right text-sm text-slate-500">
+                        <div className="text-right text-sm text-muted-foreground">
                           {badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'N/A'}
                         </div>
                       </div>
                     );
                   })}
                   {data.badgeStats.recentBadges.length === 0 && (
-                    <div className="text-center py-8 text-slate-500">
+                    <div className="text-center py-8 text-muted-foreground">
                       No recent badges found
                     </div>
                   )}

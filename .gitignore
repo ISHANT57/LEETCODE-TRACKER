@@ -16,3 +16,5 @@ vite.config.ts.*
 .env.local
 .env.*.local
 .local
+# vite-plugin-pwa dev service-worker output
+client/dev-dist

@@ -81,10 +81,10 @@ export default function StudentDashboard() {
     return (
       <div className="flex-1 p-6">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-slate-200 rounded w-1/3"></div>
+          <div className="h-8 bg-muted rounded w-1/3"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-slate-200 rounded"></div>
+              <div key={i} className="h-32 bg-muted rounded"></div>
             ))}
           </div>
         </div>
@@ -125,17 +125,17 @@ export default function StudentDashboard() {
               className="ring-2 ring-primary/10"
             />
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">
+              <h2 className="text-xl font-semibold text-foreground">
                 {data?.student?.name || username}
               </h2>
               <div className="flex items-center space-x-2">
-                <p className="text-sm text-slate-500">@{username}</p>
+                <p className="text-sm text-muted-foreground">@{username}</p>
                 {data?.student?.leetcodeProfileLink && (
                   <a 
                     href={data.student.leetcodeProfileLink} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                    className="text-sm text-primary hover:text-primary/80 flex items-center"
                   >
                     <ExternalLink className="h-3 w-3 ml-1" />
                   </a>
@@ -144,7 +144,7 @@ export default function StudentDashboard() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-muted-foreground">
               <RefreshCw className="inline mr-1" size={14} />
               Last sync: 2 min ago
             </div>

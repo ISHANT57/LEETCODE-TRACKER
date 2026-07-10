@@ -9,7 +9,6 @@ import {
   TrendingUp,
   Building2,
   BookOpen,
-  ShieldCheck,
   GitCompare,
   type LucideIcon,
 } from "lucide-react";
@@ -121,18 +120,6 @@ export default function Sidebar({ className, onNavigate }: { className?: string,
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-sidebar-border p-3">
-        <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent/60 px-3 py-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-slate-200">
-            <ShieldCheck size={16} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-white">View Mode</p>
-            <p className="text-[11px] text-slate-400 truncate">Read-only access</p>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 }

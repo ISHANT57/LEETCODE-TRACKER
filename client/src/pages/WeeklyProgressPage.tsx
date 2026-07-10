@@ -75,13 +75,13 @@ export default function WeeklyProgressPage() {
   const getTrendIcon = (value: number) => {
     if (value > 0) return <TrendingUp className="h-4 w-4 text-green-500" />;
     if (value < 0) return <TrendingDown className="h-4 w-4 text-red-500" />;
-    return <Minus className="h-4 w-4 text-gray-500" />;
+    return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
   const getTrendColor = (value: number) => {
     if (value > 0) return "text-green-600 bg-green-50";
     if (value < 0) return "text-red-600 bg-red-50";
-    return "text-gray-600 bg-gray-50";
+    return "text-muted-foreground bg-muted/40";
   };
 
   // Helper function to safely display numeric values
@@ -144,7 +144,7 @@ export default function WeeklyProgressPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="page-container py-6">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Loading weekly progress data...</span>
@@ -154,11 +154,11 @@ export default function WeeklyProgressPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="page-container py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Weekly Progress Analysis</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Weekly Progress Analysis</h1>
           <p className="text-muted-foreground">Track weekly LeetCode progress from Week 1 to Week 4</p>
         </div>
         <Button onClick={handleImport} disabled={importMutation.isPending}>
@@ -187,7 +187,7 @@ export default function WeeklyProgressPage() {
               <CardTitle className="text-sm font-medium">Average Current Solved</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{safeDisplayValue(summaryStats.averageCurrentSolved)}</div>
+              <div className="text-2xl font-bold text-primary">{safeDisplayValue(summaryStats.averageCurrentSolved)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -330,7 +330,7 @@ export default function WeeklyProgressPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className="font-bold text-blue-600">
+                      <Badge variant="outline" className="font-bold text-primary">
                         {safeDisplayValue(studentData.realTimeData?.currentSolved)}
                       </Badge>
                       <div className="text-xs text-muted-foreground mt-1">
@@ -343,7 +343,7 @@ export default function WeeklyProgressPage() {
                       <Badge 
                         variant="outline" 
                         className={(studentData.realTimeData?.newIncrement || 0) > 0 ? "text-green-600 bg-green-50" : 
-                                 (studentData.realTimeData?.newIncrement || 0) < 0 ? "text-red-600 bg-red-50" : "text-gray-600"}
+                                 (studentData.realTimeData?.newIncrement || 0) < 0 ? "text-red-600 bg-red-50" : "text-muted-foreground"}
                       >
                         {getTrendIcon(studentData.realTimeData?.newIncrement || 0)}
                         <span className="ml-1">{safeDisplayValue(studentData.realTimeData?.newIncrement)}</span>

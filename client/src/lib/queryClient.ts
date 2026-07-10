@@ -1,4 +1,13 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { supabase } from "./supabase";
+
+// Build the Authorization header from the current Supabase session (if any),
+// so protected API routes receive the user's access token.
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 // Base URL of the backend API. When the frontend and backend are deployed
 // separately (frontend on Vercel/Cloudflare Pages, API on Render), set
@@ -28,7 +37,10 @@ export async function apiRequest(
 ): Promise<Response> {
   const res = await fetch(apiUrl(url), {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...(data ? { "Content-Type": "application/json" } : {}),
+      ...(await authHeaders()),
+    },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -44,6 +56,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(apiUrl(queryKey.join("/") as string), {
+      headers: await authHeaders(),
       credentials: "include",
     });
 

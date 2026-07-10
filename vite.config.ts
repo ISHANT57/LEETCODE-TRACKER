@@ -165,9 +165,11 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        enabled: true,
-        type: "module",
-        navigateFallback: "index.html",
+        // Keep the service worker OUT of dev — an active SW in dev intercepts
+        // Vite's module requests (/src/main.tsx, /@vite/client) and returns
+        // index.html, breaking HMR with "Expected a JavaScript module" errors.
+        // The SW is still generated and tested via the production build.
+        enabled: false,
       },
     })
   ],
@@ -179,6 +181,9 @@ export default defineConfig({
     },
   },
   root: path.resolve(__dirname, "client"),
+  // Load .env from the project root (not the client/ root), so the same file
+  // the server reads also feeds VITE_* vars into the client build.
+  envDir: __dirname,
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,

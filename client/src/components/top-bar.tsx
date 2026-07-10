@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Search, ChevronRight, Menu } from "lucide-react";
+import { Drawer } from "vaul";
 import { useGlobalSearch } from "@/lib/search-context";
+import { useEdgeSwipe } from "@/hooks/use-edge-swipe";
 import ThemeToggle from "@/components/theme-toggle";
 import NotificationsMenu from "@/components/notifications-menu";
 import AccountMenu from "@/components/account-menu";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/sidebar";
 
@@ -35,6 +36,10 @@ export default function TopBar() {
   const crumbs = crumbsFor(location);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Swipe right from the left edge to open the nav drawer (mobile only).
+  const openMenu = useCallback(() => setMenuOpen(true), []);
+  useEdgeSwipe({ onOpen: openMenu, enabled: !menuOpen });
+
   // Cmd/Ctrl+K focuses global search.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -50,19 +55,27 @@ export default function TopBar() {
 
   return (
     <header className="safe-top sticky top-0 z-30 flex min-h-16 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:gap-4 sm:px-6">
-      {/* Mobile Menu */}
-      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetTrigger asChild>
+      {/* Mobile Menu — vaul drawer, opens via hamburger or left-edge swipe,
+          closes by tapping the overlay or swiping/dragging left. */}
+      <Drawer.Root direction="left" open={menuOpen} onOpenChange={setMenuOpen}>
+        <Drawer.Trigger asChild>
           <Button variant="ghost" size="icon" aria-label="Open navigation menu" className="min-touch md:hidden shrink-0">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle menu</span>
           </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="safe-top safe-bottom p-0 w-64 border-none">
-          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-          <Sidebar className="flex md:flex w-full h-full" onNavigate={() => setMenuOpen(false)} />
-        </SheetContent>
-      </Sheet>
+        </Drawer.Trigger>
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 z-40 bg-black/50 md:hidden" />
+          <Drawer.Content
+            className="safe-top safe-bottom fixed inset-y-0 left-0 z-50 flex w-64 flex-col outline-none md:hidden"
+            aria-label="Navigation menu"
+          >
+            <Drawer.Title className="sr-only">Navigation Menu</Drawer.Title>
+            <Drawer.Description className="sr-only">Main site navigation</Drawer.Description>
+            <Sidebar className="flex md:flex w-full h-full" onNavigate={() => setMenuOpen(false)} />
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
 
       {/* Breadcrumb */}
       <nav className="hidden items-center gap-1.5 text-sm md:flex">

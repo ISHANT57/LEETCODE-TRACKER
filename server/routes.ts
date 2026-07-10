@@ -7,12 +7,13 @@ import { csvImportService } from "./services/csv-import";
 import { weeklyProgressImportService } from "./services/weekly-progress-import";
 import path from 'path';
 import { insertStudentSchema } from "@shared/schema";
+import { requireAuth } from "./middleware/require-auth";
 import studentsData from "../attached_assets/students_1753783623487.json";
 import batch2027Data from "../attached_assets/batch_2027_real_students.json";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize students from JSON file
-  app.post("/api/init-students", async (req, res) => {
+  app.post("/api/init-students", requireAuth, async (req, res) => {
     try {
       let importedCount = 0;
       
@@ -40,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import Batch 2027 students
-  app.post("/api/init-batch-2027", async (req, res) => {
+  app.post("/api/init-batch-2027", requireAuth, async (req, res) => {
     try {
       let importedCount = 0;
       
@@ -68,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Replace existing Batch 2027 students with real data
-  app.post("/api/replace-batch-2027", async (req, res) => {
+  app.post("/api/replace-batch-2027", requireAuth, async (req, res) => {
     try {
       // First, delete all existing Batch 2027 students
       const existingStudents = await storage.getStudentsByBatch('2027');
@@ -112,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete student by username
-  app.delete("/api/students/:username", async (req, res) => {
+  app.delete("/api/students/:username", requireAuth, async (req, res) => {
     try {
       const { username } = req.params;
       const success = await storage.deleteStudentByUsername(username);
@@ -128,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk delete students
-  app.post("/api/students/bulk-delete", async (req, res) => {
+  app.post("/api/students/bulk-delete", requireAuth, async (req, res) => {
     try {
       const { usernames } = req.body;
       if (!Array.isArray(usernames)) {
@@ -156,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Update a single student's editable fields (currently just the GitHub handle).
   // Used by the admin "GitHub Handles" manager to drive avatar photos.
-  app.patch("/api/students/:id", async (req, res) => {
+  app.patch("/api/students/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { githubUsername } = req.body ?? {};
@@ -184,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update a student's weekly goal (target problems per week)
-  app.patch("/api/students/:id/goal", async (req, res) => {
+  app.patch("/api/students/:id/goal", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { weeklyGoal } = req.body;
@@ -355,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Sync single student
-  app.post("/api/sync/student/:id", async (req, res) => {
+  app.post("/api/sync/student/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const success = await leetCodeService.syncStudentData(id);
@@ -372,7 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Sync all students
-  app.post("/api/sync/all", async (req, res) => {
+  app.post("/api/sync/all", requireAuth, async (req, res) => {
     try {
       const result = await schedulerService.manualSync();
       res.json(result);
@@ -383,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Sync profile photos from LeetCode
-  app.post("/api/sync/profile-photos", async (req, res) => {
+  app.post("/api/sync/profile-photos", requireAuth, async (req, res) => {
     try {
       const result = await leetCodeService.syncAllProfilePhotos();
       res.json({ 
@@ -448,7 +449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import students from CSV
-  app.post("/api/import/csv", async (req, res) => {
+  app.post("/api/import/csv", requireAuth, async (req, res) => {
     try {
       const csvFilePath = path.join(process.cwd(), 'attached_assets', 'LeetCode Details (2024-28) - Sheet1_1753877079641.csv');
       const result = await csvImportService.importFromCSV(csvFilePath);
@@ -465,7 +466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import updated students data from new CSV format
-  app.post("/api/import/updated-csv", async (req, res) => {
+  app.post("/api/import/updated-csv", requireAuth, async (req, res) => {
     try {
       const csvFilePath = path.join(process.cwd(), 'attached_assets', 'LEETCODE UPDATED DATA SHEET_1753968848855.csv');
       const result = await csvImportService.importUpdatedCSV(csvFilePath);
@@ -482,7 +483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import weekly progress data from CSV
-  app.post("/api/import/weekly-progress", async (req, res) => {
+  app.post("/api/import/weekly-progress", requireAuth, async (req, res) => {
     try {
       const csvFilePath = path.join(process.cwd(), 'attached_assets', 'batch of 28 leetcode_2_AUGUST_1754130719740.csv');
       const result = await weeklyProgressImportService.importWeeklyProgressFromCSV(csvFilePath);
