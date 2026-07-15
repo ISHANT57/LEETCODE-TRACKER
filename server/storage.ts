@@ -1,13 +1,12 @@
 
-import { 
-  type Student, 
+import {
+  type Student,
   type InsertStudent,
   type DailyProgress,
   type InsertDailyProgress,
   type WeeklyTrend,
   type InsertWeeklyTrend,
   type Badge,
-  type InsertBadge,
   type AppSettings,
   type WeeklyProgressData,
   type InsertWeeklyProgressData,
@@ -18,16 +17,31 @@ import {
   type AdminDashboardData,
   type BatchDashboardData,
   type UniversityDashboardData,
+  type Problem,
+  type ProblemTag,
+  type StudentSolve,
+  type StudentCategoryScore,
+  type GoalProfile,
+  type GoalProfileTarget,
+  type CategoryScoreSummary,
+  type RecentSubmission,
   students,
   dailyProgress,
   weeklyTrends,
   badges,
   appSettings,
   weeklyProgressData,
-  leetcodeRealTimeData
+  leetcodeRealTimeData,
+  problems,
+  problemTags,
+  studentSolves,
+  studentCategoryScores,
+  goalProfiles,
+  goalProfileTargets
 } from "@shared/schema";
+import { categoryLabel } from "@shared/categories";
 import { db } from "./db";
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, inArray, notInArray, ne } from "drizzle-orm";
 
 // Weekly tracking anchor — Week 1 starts here, then fixed 7-day blocks.
 // Must stay in sync with WEEK_ANCHOR in services/leetcode.ts.
@@ -96,10 +110,9 @@ export interface IStorage {
   updateLeetcodeRealTimeData(studentId: string, updates: Partial<LeetcodeRealTimeData>): Promise<LeetcodeRealTimeData | undefined>;
   deleteLeetcodeRealTimeData(studentId: string): Promise<boolean>;
 
-  // Badges
+  // Badges (mirrored from LeetCode's own badges — no custom/local badge logic)
   getStudentBadges(studentId: string): Promise<Badge[]>;
-  createBadge(badge: InsertBadge): Promise<Badge>;
-  getBadgeByType(studentId: string, badgeType: string): Promise<Badge | undefined>;
+  upsertStudentBadges(studentId: string, rows: { leetcodeBadgeId: string; name: string; icon: string; earnedAt: Date | null }[]): Promise<void>;
   getAllBadgesData(): Promise<any>;
 
   // App Settings
@@ -120,12 +133,36 @@ export interface IStorage {
   getAllStudentsWithBatch(): Promise<Student[]>;
 
   // Helper methods
-  hasStudentEarnedBadge(studentId: string, badgeType: string): Promise<boolean>;
   calculateStreak(studentId: string): Promise<number>;
   calculateMaxStreak(studentId: string): Promise<number>;
   calculateTotalActiveDays(studentId: string): Promise<number>;
   getWeeklyTrend(studentId: string, weekStart: string): Promise<WeeklyTrend | undefined>;
   getLatestDailyProgress(studentId: string): Promise<DailyProgress | undefined>;
+
+  // Problem catalog
+  getProblemBySlug(slug: string): Promise<Problem | undefined>;
+  getAllProblemsCount(): Promise<number>;
+  upsertProblems(rows: { titleSlug: string; questionFrontendId: string; title: string; difficulty: string; acRate: number; paidOnly: boolean }[]): Promise<void>;
+  upsertProblemTags(rows: { problemSlug: string; tagSlug: string; tagName: string }[]): Promise<void>;
+  getTagsForProblems(slugs: string[]): Promise<ProblemTag[]>;
+  getProblemsForTagExcluding(tagSlug: string, excludeSlugs: string[], opts: { orderBy: "acRate" | "random"; limit: number }): Promise<Problem[]>;
+
+  // Student solves
+  getStudentSolves(studentId: string): Promise<StudentSolve[]>;
+  upsertStudentSolves(studentId: string, rows: { problemSlug: string; solvedAt: Date }[]): Promise<void>;
+  getRecentSubmissions(studentId: string, limit: number): Promise<RecentSubmission[]>;
+
+  // Category scores
+  getStudentCategoryScores(studentId: string): Promise<StudentCategoryScore[]>;
+  upsertCategoryScores(studentId: string, rows: { categorySlug: string; estimatedScore: number; confidenceLevel: number; adjustedScore: number; evidencePoints: number; solveCount: number; lastSolvedAt: Date | null }[]): Promise<void>;
+  getAllCategoryScoresByStudent(): Promise<Map<string, StudentCategoryScore[]>>;
+
+  // Goal profiles
+  getGoalProfiles(studentId?: string): Promise<GoalProfile[]>;
+  getGoalProfile(id: string): Promise<GoalProfile | undefined>;
+  getGoalProfileTargets(goalProfileId: string): Promise<GoalProfileTarget[]>;
+  createOrReplaceCustomGoalProfile(studentId: string, name: string, targets: { categorySlug: string; weight: number; targetScore: number }[]): Promise<GoalProfile>;
+  getAllDistinctTags(): Promise<{ tagSlug: string; tagName: string }[]>;
 }
 
 export class PostgreSQLStorage implements IStorage {
@@ -270,7 +307,14 @@ export class PostgreSQLStorage implements IStorage {
       await db.delete(dailyProgress).where(eq(dailyProgress.studentId, id));
       await db.delete(leetcodeRealTimeData).where(eq(leetcodeRealTimeData.studentId, id));
       await db.delete(weeklyProgressData).where(eq(weeklyProgressData.studentId, id));
-      
+      await db.delete(studentSolves).where(eq(studentSolves.studentId, id));
+      await db.delete(studentCategoryScores).where(eq(studentCategoryScores.studentId, id));
+      const ownedProfiles = await db.select({ id: goalProfiles.id }).from(goalProfiles).where(eq(goalProfiles.ownerStudentId, id));
+      for (const p of ownedProfiles) {
+        await db.delete(goalProfileTargets).where(eq(goalProfileTargets.goalProfileId, p.id));
+      }
+      await db.delete(goalProfiles).where(eq(goalProfiles.ownerStudentId, id));
+
       // Then delete the student
       const result = await db.delete(students).where(eq(students.id, id));
       return true;
@@ -366,23 +410,24 @@ export class PostgreSQLStorage implements IStorage {
     }
   }
 
-  // Badges
+  // Badges (mirrored from LeetCode's own badges)
   async getStudentBadges(studentId: string): Promise<Badge[]> {
     return await db.select().from(badges)
       .where(eq(badges.studentId, studentId))
       .orderBy(desc(badges.earnedAt));
   }
 
-  async createBadge(insertBadge: InsertBadge): Promise<Badge> {
-    const result = await db.insert(badges).values(insertBadge).returning();
-    return result[0];
-  }
-
-  async getBadgeByType(studentId: string, badgeType: string): Promise<Badge | undefined> {
-    const result = await db.select().from(badges)
-      .where(and(eq(badges.studentId, studentId), eq(badges.badgeType, badgeType)))
-      .limit(1);
-    return result[0];
+  async upsertStudentBadges(studentId: string, rows: { leetcodeBadgeId: string; name: string; icon: string; earnedAt: Date | null }[]): Promise<void> {
+    if (rows.length === 0) return;
+    const values = rows.map(r => ({ studentId, ...r }));
+    await db.insert(badges).values(values).onConflictDoUpdate({
+      target: [badges.studentId, badges.leetcodeBadgeId],
+      set: {
+        name: sql`excluded.name`,
+        icon: sql`excluded.icon`,
+        earnedAt: sql`excluded.earned_at`,
+      },
+    });
   }
 
   async getAllBadgesData(): Promise<any> {
@@ -390,9 +435,8 @@ export class PostgreSQLStorage implements IStorage {
     const allBadges = await db.select({
       id: badges.id,
       studentId: badges.studentId,
-      badgeType: badges.badgeType,
-      title: badges.title,
-      description: badges.description,
+      leetcodeBadgeId: badges.leetcodeBadgeId,
+      name: badges.name,
       icon: badges.icon,
       earnedAt: badges.earnedAt,
       studentName: students.name,
@@ -406,9 +450,8 @@ export class PostgreSQLStorage implements IStorage {
     const badgesWithStudents = allBadges.map(badge => ({
       id: badge.id,
       studentId: badge.studentId,
-      badgeType: badge.badgeType,
-      title: badge.title,
-      description: badge.description,
+      leetcodeBadgeId: badge.leetcodeBadgeId,
+      name: badge.name,
       icon: badge.icon,
       earnedAt: badge.earnedAt,
       student: {
@@ -421,15 +464,15 @@ export class PostgreSQLStorage implements IStorage {
     // Calculate badge statistics
     const totalBadges = allBadges.length;
     const uniqueRecipients = new Set(allBadges.map(b => b.studentId)).size;
-    
-    // Find most popular badge type
-    const badgeTypeCounts = allBadges.reduce((counts, badge) => {
-      counts[badge.badgeType] = (counts[badge.badgeType] || 0) + 1;
+
+    // Find most popular badge (by name)
+    const badgeNameCounts = allBadges.reduce((counts, badge) => {
+      counts[badge.name] = (counts[badge.name] || 0) + 1;
       return counts;
     }, {} as Record<string, number>);
-    
-    const mostPopularBadge = Object.keys(badgeTypeCounts).reduce((a, b) => 
-      badgeTypeCounts[a] > badgeTypeCounts[b] ? a : b, Object.keys(badgeTypeCounts)[0] || ''
+
+    const mostPopularBadge = Object.keys(badgeNameCounts).reduce((a, b) =>
+      badgeNameCounts[a] > badgeNameCounts[b] ? a : b, Object.keys(badgeNameCounts)[0] || ''
     );
 
     // Get recent badges (last 10)
@@ -469,12 +512,28 @@ export class PostgreSQLStorage implements IStorage {
     const student = await this.getStudent(studentId);
     if (!student) return undefined;
 
-    const [dailyProgress, badges, weeklyTrends, realTimeData] = await Promise.all([
+    const [dailyProgress, badges, weeklyTrends, realTimeData, rawCategoryScores, recentSubmissions] = await Promise.all([
       this.getStudentDailyProgress(studentId, 30),
       this.getStudentBadges(studentId),
       this.getWeeklyTrends(studentId, 12),
-      this.getLeetcodeRealTimeData(studentId)
+      this.getLeetcodeRealTimeData(studentId),
+      this.getStudentCategoryScores(studentId),
+      this.getRecentSubmissions(studentId, 20)
     ]);
+
+    const categoryScores: CategoryScoreSummary[] = rawCategoryScores
+      .filter(s => s.evidencePoints > 0)
+      .sort((a, b) => b.adjustedScore - a.adjustedScore)
+      .map(s => ({
+        categorySlug: s.categorySlug,
+        categoryLabel: categoryLabel(s.categorySlug),
+        estimatedScore: s.estimatedScore,
+        confidenceLevel: s.confidenceLevel,
+        adjustedScore: s.adjustedScore,
+        evidencePoints: s.evidencePoints,
+        solveCount: s.solveCount,
+        lastSolvedAt: s.lastSolvedAt ? s.lastSolvedAt.toISOString() : null,
+      }));
 
     const latestProgress = dailyProgress[0];
     const stats: LeetCodeStats = latestProgress ? {
@@ -544,15 +603,22 @@ export class PostgreSQLStorage implements IStorage {
         hard: p.hardSolved,
         total: p.totalSolved,
       })),
+      categoryScores,
+      // Populated by the route handler (recommendationsService + goal-profile lookup)
+      // — left as safe defaults here so this method's return type is self-consistent.
+      recommendations: { fundamental: [], refresh: [], new: [] },
+      goalProfile: null,
+      recentSubmissions,
     };
   }
 
   async getAdminDashboard(): Promise<AdminDashboardData> {
-    const [students, progressByStudent, realTimeByStudent, weeklyDataByStudent] = await Promise.all([
+    const [students, progressByStudent, realTimeByStudent, weeklyDataByStudent, categoryScoresByStudent] = await Promise.all([
       this.getAllStudents(),
       this.getAllDailyProgressByStudent(),
       this.getAllRealTimeDataByStudent(),
       this.getAllWeeklyProgressDataByStudent(),
+      this.getAllCategoryScoresByStudent(),
     ]);
     const totalStudents = students.length;
 
@@ -561,6 +627,7 @@ export class PostgreSQLStorage implements IStorage {
       const latestProgress = progressArr[0];
       const weeklyProgress = weeklyDataByStudent.get(student.id);
       const realTimeData = realTimeByStudent.get(student.id);
+      const weakestCategory = this.weakestCategoryFromScores(categoryScoresByStudent.get(student.id) || []);
 
       const stats = this.statsFromProgress(latestProgress);
 
@@ -593,14 +660,15 @@ export class PostgreSQLStorage implements IStorage {
         streak: currentStreak,
         maxStreak,
         totalActiveDays,
-        status
+        status,
+        weakestCategory
       };
     });
 
     const activeStudents = studentsWithStats.filter(s => s.status !== 'inactive').length;
     const avgProblems = totalStudents > 0 ? studentsWithStats.reduce((sum, s) => sum + s.stats.totalSolved, 0) / totalStudents : 0;
     const underperforming = studentsWithStats.filter(s => s.stats.totalSolved < avgProblems * 0.7).length;
-    
+
     // Calculate streak statistics
     const maxStreakOverall = Math.max(...studentsWithStats.map(s => s.maxStreak), 0);
     const avgMaxStreak = totalStudents > 0 ? studentsWithStats.reduce((sum, s) => sum + s.maxStreak, 0) / totalStudents : 0;
@@ -619,6 +687,7 @@ export class PostgreSQLStorage implements IStorage {
           githubUsername: student.githubUsername,
           batch: student.batch,
           weeklyGoal: student.weeklyGoal,
+          selectedGoalProfileId: student.selectedGoalProfileId,
           createdAt: student.createdAt
         },
         weeklyScore: student.weeklyProgress
@@ -658,11 +727,6 @@ export class PostgreSQLStorage implements IStorage {
 
 
   // Helper methods
-  async hasStudentEarnedBadge(studentId: string, badgeType: string): Promise<boolean> {
-    const badge = await this.getBadgeByType(studentId, badgeType);
-    return badge !== undefined;
-  }
-
   async calculateStreak(studentId: string): Promise<number> {
     const progress = await this.getStudentDailyProgress(studentId, 30);
     let streak = 0;
@@ -856,12 +920,13 @@ export class PostgreSQLStorage implements IStorage {
   }
 
   async getBatchDashboard(batch: string): Promise<BatchDashboardData> {
-    const [batchStudents, progressByStudent, realTimeByStudent] = await Promise.all([
+    const [batchStudents, progressByStudent, realTimeByStudent, categoryScoresByStudent] = await Promise.all([
       this.getStudentsByBatch(batch),
       this.getAllDailyProgressByStudent(),
       this.getAllRealTimeDataByStudent(),
+      this.getAllCategoryScoresByStudent(),
     ]);
-    return this.computeBatchDashboard(batch, batchStudents, progressByStudent, realTimeByStudent);
+    return this.computeBatchDashboard(batch, batchStudents, progressByStudent, realTimeByStudent, categoryScoresByStudent);
   }
 
   // Pure computation shared by getBatchDashboard and getUniversityDashboard
@@ -872,6 +937,7 @@ export class PostgreSQLStorage implements IStorage {
     batchStudents: Student[],
     progressByStudent: Map<string, DailyProgress[]>,
     realTimeByStudent: Map<string, LeetcodeRealTimeData>,
+    categoryScoresByStudent: Map<string, StudentCategoryScore[]>,
   ): BatchDashboardData {
     const totalStudents = batchStudents.length;
 
@@ -909,6 +975,7 @@ export class PostgreSQLStorage implements IStorage {
       const maxStreak = realTimeData?.maxStreak ?? this.maxStreakFromArray(progressArr);
       const totalActiveDays = realTimeData?.totalActiveDays ?? this.activeDaysFromArray(progressArr);
       const currentStreak = realTimeData?.currentStreak ?? this.streakFromArray(progressArr);
+      const weakestCategory = this.weakestCategoryFromScores(categoryScoresByStudent.get(student.id) || []);
 
       return {
         ...student,
@@ -917,7 +984,8 @@ export class PostgreSQLStorage implements IStorage {
         streak: currentStreak,
         maxStreak,
         totalActiveDays,
-        status
+        status,
+        weakestCategory
       };
     });
 
@@ -943,6 +1011,7 @@ export class PostgreSQLStorage implements IStorage {
           githubUsername: student.githubUsername,
           batch: student.batch,
           weeklyGoal: student.weeklyGoal,
+          selectedGoalProfileId: student.selectedGoalProfileId,
           createdAt: student.createdAt
         },
         weeklyScore: student.weeklyProgress
@@ -1004,17 +1073,18 @@ export class PostgreSQLStorage implements IStorage {
     // Fetch the shared, expensive maps ONCE and reuse them for both batches
     // and the university leaderboard (previously this re-queried the full
     // daily-progress table three times).
-    const [allStudents, progressByStudent, realTimeByStudent] = await Promise.all([
+    const [allStudents, progressByStudent, realTimeByStudent, categoryScoresByStudent] = await Promise.all([
       this.getAllStudents(),
       this.getAllDailyProgressByStudent(),
       this.getAllRealTimeDataByStudent(),
+      this.getAllCategoryScoresByStudent(),
     ]);
 
     const students2027 = allStudents.filter(s => s.batch === "2027");
     const students2028 = allStudents.filter(s => s.batch === "2028");
 
-    const batch2027Data = this.computeBatchDashboard("2027", students2027, progressByStudent, realTimeByStudent);
-    const batch2028Data = this.computeBatchDashboard("2028", students2028, progressByStudent, realTimeByStudent);
+    const batch2027Data = this.computeBatchDashboard("2027", students2027, progressByStudent, realTimeByStudent, categoryScoresByStudent);
+    const batch2028Data = this.computeBatchDashboard("2028", students2028, progressByStudent, realTimeByStudent, categoryScoresByStudent);
 
     const universityLeaderboard = allStudents
       .map((student) => ({
@@ -1049,6 +1119,195 @@ export class PostgreSQLStorage implements IStorage {
     if (totalSolved >= 50 && weeklyProgress >= 10) return 'Good';
     if (weeklyProgress >= 5) return 'Active';
     return 'Underperforming';
+  }
+
+  // ------------------------------------------------------------------
+  // Problem catalog
+  // ------------------------------------------------------------------
+
+  async getProblemBySlug(slug: string): Promise<Problem | undefined> {
+    const result = await db.select().from(problems).where(eq(problems.titleSlug, slug)).limit(1);
+    return result[0];
+  }
+
+  async getAllProblemsCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(problems);
+    return Number(result[0]?.count || 0);
+  }
+
+  async upsertProblems(rows: { titleSlug: string; questionFrontendId: string; title: string; difficulty: string; acRate: number; paidOnly: boolean }[]): Promise<void> {
+    if (rows.length === 0) return;
+    await db.insert(problems).values(rows).onConflictDoUpdate({
+      target: problems.titleSlug,
+      set: {
+        questionFrontendId: sql`excluded.question_frontend_id`,
+        title: sql`excluded.title`,
+        difficulty: sql`excluded.difficulty`,
+        acRate: sql`excluded.ac_rate`,
+        paidOnly: sql`excluded.paid_only`,
+        lastCatalogSyncAt: new Date(),
+      },
+    });
+  }
+
+  async upsertProblemTags(rows: { problemSlug: string; tagSlug: string; tagName: string }[]): Promise<void> {
+    if (rows.length === 0) return;
+    await db.insert(problemTags).values(rows).onConflictDoNothing({
+      target: [problemTags.tagSlug, problemTags.problemSlug],
+    });
+  }
+
+  async getTagsForProblems(slugs: string[]): Promise<ProblemTag[]> {
+    if (slugs.length === 0) return [];
+    return await db.select().from(problemTags).where(inArray(problemTags.problemSlug, slugs));
+  }
+
+  async getProblemsForTagExcluding(tagSlug: string, excludeSlugs: string[], opts: { orderBy: "acRate" | "random"; limit: number }): Promise<Problem[]> {
+    const taggedSlugs = await db.select({ slug: problemTags.problemSlug }).from(problemTags).where(eq(problemTags.tagSlug, tagSlug));
+    const candidateSlugs = taggedSlugs.map(t => t.slug).filter(s => !excludeSlugs.includes(s));
+    if (candidateSlugs.length === 0) return [];
+
+    const orderClause = opts.orderBy === "acRate" ? desc(problems.acRate) : sql`random()`;
+    return await db.select().from(problems)
+      .where(and(inArray(problems.titleSlug, candidateSlugs), eq(problems.paidOnly, false)))
+      .orderBy(orderClause)
+      .limit(opts.limit);
+  }
+
+  // ------------------------------------------------------------------
+  // Student solves
+  // ------------------------------------------------------------------
+
+  async getStudentSolves(studentId: string): Promise<StudentSolve[]> {
+    return await db.select().from(studentSolves).where(eq(studentSolves.studentId, studentId));
+  }
+
+  async upsertStudentSolves(studentId: string, rows: { problemSlug: string; solvedAt: Date }[]): Promise<void> {
+    if (rows.length === 0) return;
+    const bySlug = new Map<string, Date>();
+    for (const r of rows) {
+      const existing = bySlug.get(r.problemSlug);
+      if (!existing || r.solvedAt > existing) bySlug.set(r.problemSlug, r.solvedAt);
+    }
+    const values = Array.from(bySlug, ([problemSlug, solvedAt]) => ({ studentId, problemSlug, solvedAt }));
+    await db.insert(studentSolves).values(values).onConflictDoUpdate({
+      target: [studentSolves.studentId, studentSolves.problemSlug],
+      set: {
+        solvedAt: sql`greatest(${studentSolves.solvedAt}, excluded.solved_at)`,
+      },
+    });
+  }
+
+  async getRecentSubmissions(studentId: string, limit: number): Promise<RecentSubmission[]> {
+    const rows = await db
+      .select({
+        problemSlug: studentSolves.problemSlug,
+        solvedAt: studentSolves.solvedAt,
+        problemTitle: problems.title,
+        difficulty: problems.difficulty,
+      })
+      .from(studentSolves)
+      .innerJoin(problems, eq(studentSolves.problemSlug, problems.titleSlug))
+      .where(eq(studentSolves.studentId, studentId))
+      .orderBy(desc(studentSolves.solvedAt))
+      .limit(limit);
+
+    return rows.map(r => ({
+      problemSlug: r.problemSlug,
+      problemTitle: r.problemTitle,
+      difficulty: r.difficulty,
+      solvedAt: r.solvedAt.toISOString(),
+    }));
+  }
+
+  // ------------------------------------------------------------------
+  // Category scores
+  // ------------------------------------------------------------------
+
+  async getStudentCategoryScores(studentId: string): Promise<StudentCategoryScore[]> {
+    return await db.select().from(studentCategoryScores).where(eq(studentCategoryScores.studentId, studentId));
+  }
+
+  async upsertCategoryScores(studentId: string, rows: { categorySlug: string; estimatedScore: number; confidenceLevel: number; adjustedScore: number; evidencePoints: number; solveCount: number; lastSolvedAt: Date | null }[]): Promise<void> {
+    if (rows.length === 0) return;
+    const values = rows.map(r => ({ studentId, ...r, computedAt: new Date() }));
+    await db.insert(studentCategoryScores).values(values).onConflictDoUpdate({
+      target: [studentCategoryScores.studentId, studentCategoryScores.categorySlug],
+      set: {
+        estimatedScore: sql`excluded.estimated_score`,
+        confidenceLevel: sql`excluded.confidence_level`,
+        adjustedScore: sql`excluded.adjusted_score`,
+        evidencePoints: sql`excluded.evidence_points`,
+        solveCount: sql`excluded.solve_count`,
+        lastSolvedAt: sql`excluded.last_solved_at`,
+        computedAt: new Date(),
+      },
+    });
+  }
+
+  async getAllCategoryScoresByStudent(): Promise<Map<string, StudentCategoryScore[]>> {
+    const all = await db.select().from(studentCategoryScores);
+    const map = new Map<string, StudentCategoryScore[]>();
+    for (const row of all) {
+      const arr = map.get(row.studentId);
+      if (arr) arr.push(row);
+      else map.set(row.studentId, [row]);
+    }
+    return map;
+  }
+
+  /** Lowest-adjustedScore category with actual evidence, used as a per-student dashboard summary. */
+  private weakestCategoryFromScores(scores: StudentCategoryScore[]): { categorySlug: string; categoryLabel: string; adjustedScore: number } | null {
+    const withEvidence = scores.filter(s => s.evidencePoints > 0);
+    if (withEvidence.length === 0) return null;
+    const weakest = withEvidence.reduce((min, s) => (s.adjustedScore < min.adjustedScore ? s : min));
+    return {
+      categorySlug: weakest.categorySlug,
+      categoryLabel: categoryLabel(weakest.categorySlug),
+      adjustedScore: weakest.adjustedScore,
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // Goal profiles
+  // ------------------------------------------------------------------
+
+  async getGoalProfiles(studentId?: string): Promise<GoalProfile[]> {
+    const builtins = await db.select().from(goalProfiles).where(sql`${goalProfiles.ownerStudentId} is null`);
+    if (!studentId) return builtins;
+    const custom = await db.select().from(goalProfiles).where(eq(goalProfiles.ownerStudentId, studentId));
+    return [...builtins, ...custom];
+  }
+
+  async getGoalProfile(id: string): Promise<GoalProfile | undefined> {
+    const result = await db.select().from(goalProfiles).where(eq(goalProfiles.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getGoalProfileTargets(goalProfileId: string): Promise<GoalProfileTarget[]> {
+    return await db.select().from(goalProfileTargets).where(eq(goalProfileTargets.goalProfileId, goalProfileId));
+  }
+
+  async createOrReplaceCustomGoalProfile(studentId: string, name: string, targets: { categorySlug: string; weight: number; targetScore: number }[]): Promise<GoalProfile> {
+    const existing = await db.select().from(goalProfiles).where(eq(goalProfiles.ownerStudentId, studentId)).limit(1);
+    let profile: GoalProfile;
+    if (existing[0]) {
+      const updated = await db.update(goalProfiles).set({ name }).where(eq(goalProfiles.id, existing[0].id)).returning();
+      profile = updated[0];
+      await db.delete(goalProfileTargets).where(eq(goalProfileTargets.goalProfileId, profile.id));
+    } else {
+      const created = await db.insert(goalProfiles).values({ name, kind: "custom", ownerStudentId: studentId }).returning();
+      profile = created[0];
+    }
+    if (targets.length > 0) {
+      await db.insert(goalProfileTargets).values(targets.map(t => ({ goalProfileId: profile.id, ...t })));
+    }
+    return profile;
+  }
+
+  async getAllDistinctTags(): Promise<{ tagSlug: string; tagName: string }[]> {
+    const rows = await db.selectDistinctOn([problemTags.tagSlug], { tagSlug: problemTags.tagSlug, tagName: problemTags.tagName }).from(problemTags);
+    return rows;
   }
 }
 

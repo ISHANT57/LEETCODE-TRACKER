@@ -3,6 +3,11 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { leetCodeService } from "./services/leetcode";
 import { schedulerService } from "./services/scheduler";
+import { problemsCatalogService } from "./services/problems-catalog";
+import { seedBuiltinGoalProfiles } from "./services/goal-profiles-seed";
+import { getRecommendations } from "./services/recommendations";
+import { computeGoalProfileProgress } from "./services/scoring-engine";
+import { categoryLabel } from "@shared/categories";
 import { csvImportService } from "./services/csv-import";
 import { weeklyProgressImportService } from "./services/weekly-progress-import";
 import path from 'path';
@@ -204,6 +209,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // List available goal profiles (built-in Amazon/Google + this student's custom one, if any)
+  app.get("/api/goal-profiles", async (req, res) => {
+    try {
+      const studentId = typeof req.query.studentId === "string" ? req.query.studentId : undefined;
+      const profiles = await storage.getGoalProfiles(studentId);
+      const withTargets = await Promise.all(
+        profiles.map(async (profile) => ({
+          ...profile,
+          targets: await storage.getGoalProfileTargets(profile.id),
+        }))
+      );
+      res.json({
+        builtin: withTargets.filter((p) => p.kind === "builtin"),
+        custom: withTargets.find((p) => p.kind === "custom") || null,
+      });
+    } catch (error) {
+      console.error('Error fetching goal profiles:', error);
+      res.status(500).json({ error: "Failed to fetch goal profiles" });
+    }
+  });
+
+  // List all known category tags (backs the Custom-profile category picker)
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const tags = await storage.getAllDistinctTags();
+      res.json(tags);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  // Create or replace a student's custom goal profile
+  app.post("/api/students/:id/goal-profile/custom", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, targets } = req.body;
+      if (typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({ error: "name is required" });
+      }
+      if (!Array.isArray(targets) || targets.length === 0) {
+        return res.status(400).json({ error: "targets must be a non-empty array" });
+      }
+      const cleanTargets = targets.map((t: any) => ({
+        categorySlug: String(t.categorySlug),
+        weight: Number.isFinite(Number(t.weight)) ? Number(t.weight) : 1,
+        targetScore: Number.isFinite(Number(t.targetScore)) ? Number(t.targetScore) : 70,
+      }));
+      const profile = await storage.createOrReplaceCustomGoalProfile(id, name.trim(), cleanTargets);
+      res.json(profile);
+    } catch (error) {
+      console.error('Error creating custom goal profile:', error);
+      res.status(500).json({ error: "Failed to create custom goal profile" });
+    }
+  });
+
+  // Select which goal profile a student is tracking against
+  app.patch("/api/students/:id/goal-profile/select", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { goalProfileId } = req.body;
+      if (goalProfileId !== null && typeof goalProfileId !== "string") {
+        return res.status(400).json({ error: "goalProfileId must be a string or null" });
+      }
+      const updated = await storage.updateStudent(id, { selectedGoalProfileId: goalProfileId });
+      if (!updated) {
+        return res.status(404).json({ error: "Student not found" });
+      }
+      res.json({ message: "Goal profile selected", selectedGoalProfileId: updated.selectedGoalProfileId });
+    } catch (error) {
+      console.error('Error selecting goal profile:', error);
+      res.status(500).json({ error: "Failed to select goal profile" });
+    }
+  });
+
   // Get student dashboard data
   app.get("/api/dashboard/student/:username", async (req, res) => {
     try {
@@ -213,11 +293,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Student not found" });
       }
       const dashboardData = await storage.getStudentDashboard(student.id);
-      
+
       if (!dashboardData) {
         return res.status(404).json({ error: "Student not found" });
       }
-      
+
+      dashboardData.recommendations = await getRecommendations(student.id);
+
+      if (student.selectedGoalProfileId) {
+        const profile = await storage.getGoalProfile(student.selectedGoalProfileId);
+        if (profile) {
+          const [targets, rawScores] = await Promise.all([
+            storage.getGoalProfileTargets(profile.id),
+            storage.getStudentCategoryScores(student.id),
+          ]);
+          const scoresByCategory = new Map(rawScores.map((s) => [s.categorySlug, s]));
+          const progress = computeGoalProfileProgress(
+            scoresByCategory,
+            targets.map((t) => ({ categorySlug: t.categorySlug, weight: t.weight, targetScore: t.targetScore }))
+          );
+          dashboardData.goalProfile = {
+            id: profile.id,
+            name: profile.name,
+            kind: profile.kind as "builtin" | "custom",
+            overallProgress: progress.overallProgress,
+            targets: progress.perCategory.map((t) => ({
+              categorySlug: t.categorySlug,
+              categoryLabel: categoryLabel(t.categorySlug),
+              weight: t.weight,
+              targetScore: t.targetScore,
+              currentScore: t.currentScore,
+            })),
+          };
+        }
+      }
+
       res.json(dashboardData);
     } catch (error) {
       console.error('Error fetching student dashboard:', error);
@@ -395,6 +505,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error syncing profile photos:', error);
       res.status(500).json({ error: "Failed to sync profile photos" });
+    }
+  });
+
+  // Manually trigger a full LeetCode problems catalog sync (admin control)
+  app.post("/api/admin/catalog/sync", requireAuth, async (req, res) => {
+    try {
+      const result = await problemsCatalogService.syncCatalog();
+      res.json({ message: "Problems catalog synced", ...result });
+    } catch (error) {
+      console.error('Error syncing problems catalog:', error);
+      res.status(500).json({ error: "Failed to sync problems catalog" });
     }
   });
 
@@ -580,6 +701,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch analytics data" });
     }
   });
+
+  // Bootstrap the local problems catalog once, if empty (fire-and-forget — don't block server start)
+  problemsCatalogService.syncIfEmpty();
+  seedBuiltinGoalProfiles().catch((error) => console.error("Error seeding builtin goal profiles:", error));
 
   // Start the scheduler
   schedulerService.startDailySync();

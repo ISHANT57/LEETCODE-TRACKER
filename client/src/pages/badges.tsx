@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Search, Trophy, Users, TrendingUp } from "lucide-react";
-import { BADGE_TYPES } from "@/lib/constants";
 import { useState } from "react";
 import type { Badge as BadgeType } from "@shared/schema";
 
@@ -26,9 +25,26 @@ interface BadgesPageData {
   };
 }
 
+function BadgeRow({ badge }: { badge: BadgeWithStudent }) {
+  return (
+    <div className="flex items-center p-4 border rounded-lg hover:bg-muted/60">
+      <img src={badge.icon} alt={badge.name} className="w-12 h-12 object-contain mr-4" loading="lazy" />
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="font-semibold text-foreground">{badge.name}</h3>
+          <Badge variant="outline">{badge.student.name}</Badge>
+        </div>
+      </div>
+      <div className="text-right text-sm text-muted-foreground">
+        {badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'N/A'}
+      </div>
+    </div>
+  );
+}
+
 export default function BadgesPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedBadgeType, setSelectedBadgeType] = useState<string>("all");
+  const [selectedBadgeName, setSelectedBadgeName] = useState<string>("all");
 
   const { data, isLoading } = useQuery<BadgesPageData>({
     queryKey: ['/api/badges/all'],
@@ -56,7 +72,7 @@ export default function BadgesPage() {
     return (
       <div className="flex-1 py-6">
         <div className="page-container">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-8">🏅 Badge System</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-8">🏅 LeetCode Badges</h1>
           <div className="text-center py-12">
             <p className="text-muted-foreground">No badge data available</p>
           </div>
@@ -65,18 +81,18 @@ export default function BadgesPage() {
     );
   }
 
-  const badgeTypes = Object.keys(BADGE_TYPES) as Array<keyof typeof BADGE_TYPES>;
-  
+  const badgeNames = Array.from(new Set(data.allBadges.map(b => b.name))).sort();
+
   const filteredBadges = data.allBadges.filter(badge => {
     const matchesSearch = badge.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         badge.student.leetcodeUsername.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         badge.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedBadgeType === "all" || badge.badgeType === selectedBadgeType;
-    return matchesSearch && matchesType;
+      badge.student.leetcodeUsername.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      badge.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesName = selectedBadgeName === "all" || badge.name === selectedBadgeName;
+    return matchesSearch && matchesName;
   });
 
-  const groupedBadges = badgeTypes.reduce((acc, badgeType) => {
-    acc[badgeType] = data.allBadges.filter(badge => badge.badgeType === badgeType);
+  const groupedBadges = badgeNames.reduce((acc, name) => {
+    acc[name] = data.allBadges.filter(badge => badge.name === name);
     return acc;
   }, {} as Record<string, BadgeWithStudent[]>);
 
@@ -85,9 +101,9 @@ export default function BadgesPage() {
       <div className="page-container">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-2">🏅 Badge System</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-2">🏅 LeetCode Badges</h1>
           <p className="text-muted-foreground">
-            Auto-assigned badges recognizing student achievements and milestones
+            Badges earned directly on LeetCode, synced from each student's profile
           </p>
         </div>
 
@@ -130,7 +146,7 @@ export default function BadgesPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Most Popular</p>
                   <p className="text-lg font-bold text-foreground">
-                    {BADGE_TYPES[data.badgeStats.mostPopularBadge as keyof typeof BADGE_TYPES]?.title || 'N/A'}
+                    {data.badgeStats.mostPopularBadge || 'N/A'}
                   </p>
                 </div>
               </div>
@@ -138,39 +154,11 @@ export default function BadgesPage() {
           </Card>
         </div>
 
-        {/* Badge Types Overview */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Badge Types</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {badgeTypes.map((badgeType) => {
-                const badgeInfo = BADGE_TYPES[badgeType];
-                const count = groupedBadges[badgeType]?.length || 0;
-                
-                return (
-                  <div key={badgeType} className="flex items-center p-4 border rounded-lg hover:bg-muted/60">
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mr-4 bg-gradient-to-br ${badgeInfo.gradient} text-white`}>
-                      <span className="text-2xl">{badgeInfo.emoji}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground">{badgeInfo.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">{badgeInfo.description}</p>
-                      <Badge variant="secondary">{count} earned</Badge>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Tabs for different views */}
         <Tabs defaultValue="all-badges" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all-badges">All Badges</TabsTrigger>
-            <TabsTrigger value="by-type">By Type</TabsTrigger>
+            <TabsTrigger value="by-badge">By Badge</TabsTrigger>
             <TabsTrigger value="recent">Recent</TabsTrigger>
           </TabsList>
 
@@ -187,15 +175,13 @@ export default function BadgesPage() {
                 />
               </div>
               <select
-                value={selectedBadgeType}
-                onChange={(e) => setSelectedBadgeType(e.target.value)}
+                value={selectedBadgeName}
+                onChange={(e) => setSelectedBadgeName(e.target.value)}
                 className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="all">All Badge Types</option>
-                {badgeTypes.map(badgeType => (
-                  <option key={badgeType} value={badgeType}>
-                    {BADGE_TYPES[badgeType].title}
-                  </option>
+                <option value="all">All Badges</option>
+                {badgeNames.map(name => (
+                  <option key={name} value={name}>{name}</option>
                 ))}
               </select>
             </div>
@@ -207,26 +193,9 @@ export default function BadgesPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {filteredBadges.map((badge) => {
-                    const badgeInfo = BADGE_TYPES[badge.badgeType as keyof typeof BADGE_TYPES];
-                    return (
-                      <div key={badge.id} className="flex items-center p-4 border rounded-lg hover:bg-muted/60">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 bg-gradient-to-br ${badgeInfo.gradient} text-white`}>
-                          <span className="text-lg">{badgeInfo.emoji}</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-foreground">{badgeInfo.title}</h3>
-                            <Badge variant="outline">{badge.student.name}</Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{badgeInfo.description}</p>
-                        </div>
-                        <div className="text-right text-sm text-muted-foreground">
-                          {badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'N/A'}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {filteredBadges.map((badge) => (
+                    <BadgeRow key={badge.id} badge={badge} />
+                  ))}
                   {filteredBadges.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       No badges found matching your criteria
@@ -237,47 +206,43 @@ export default function BadgesPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="by-type" className="space-y-6">
-            {badgeTypes.map((badgeType) => {
-              const badgeInfo = BADGE_TYPES[badgeType];
-              const badges = groupedBadges[badgeType] || [];
-              
+          <TabsContent value="by-badge" className="space-y-6">
+            {badgeNames.length === 0 && (
+              <p className="text-center py-8 text-muted-foreground">No badges earned yet</p>
+            )}
+            {badgeNames.map((name) => {
+              const badgesForName = groupedBadges[name] || [];
+              const icon = badgesForName[0]?.icon;
+
               return (
-                <Card key={badgeType}>
+                <Card key={name}>
                   <CardHeader>
                     <div className="flex items-center">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 bg-gradient-to-br ${badgeInfo.gradient} text-white`}>
-                        <span className="text-lg">{badgeInfo.emoji}</span>
-                      </div>
-                      <div>
-                        <CardTitle>{badgeInfo.title}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{badgeInfo.description}</p>
-                      </div>
-                      <Badge variant="secondary" className="ml-auto">{badges.length} earned</Badge>
+                      {icon && (
+                        <img src={icon} alt={name} className="w-12 h-12 object-contain mr-4" loading="lazy" />
+                      )}
+                      <CardTitle>{name}</CardTitle>
+                      <Badge variant="secondary" className="ml-auto">{badgesForName.length} earned</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {badges.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {badges.map((badge) => (
-                          <div key={badge.id} className="flex items-center p-3 border rounded-lg">
-                            <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center mr-3">
-                              <span className="text-xs font-semibold text-muted-foreground">
-                                {badge.student.name.split(' ').map(n => n[0]).join('')}
-                              </span>
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium text-sm">{badge.student.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'N/A'}
-                              </p>
-                            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {badgesForName.map((badge) => (
+                        <div key={badge.id} className="flex items-center p-3 border rounded-lg">
+                          <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center mr-3">
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              {badge.student.name.split(' ').map(n => n[0]).join('')}
+                            </span>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">No one has earned this badge yet</p>
-                    )}
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{badge.student.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -291,26 +256,9 @@ export default function BadgesPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {data.badgeStats.recentBadges.map((badge) => {
-                    const badgeInfo = BADGE_TYPES[badge.badgeType as keyof typeof BADGE_TYPES];
-                    return (
-                      <div key={badge.id} className="flex items-center p-4 border rounded-lg hover:bg-muted/60">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 bg-gradient-to-br ${badgeInfo.gradient} text-white`}>
-                          <span className="text-lg">{badgeInfo.emoji}</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-foreground">{badgeInfo.title}</h3>
-                            <Badge variant="outline">{badge.student.name}</Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{badgeInfo.description}</p>
-                        </div>
-                        <div className="text-right text-sm text-muted-foreground">
-                          {badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : 'N/A'}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {data.badgeStats.recentBadges.map((badge) => (
+                    <BadgeRow key={badge.id} badge={badge} />
+                  ))}
                   {data.badgeStats.recentBadges.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       No recent badges found

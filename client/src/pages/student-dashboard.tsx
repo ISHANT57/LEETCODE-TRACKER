@@ -13,10 +13,13 @@ import LanguageBreakdown from "@/components/dashboard/language-breakdown";
 import WeeklyGoal from "@/components/dashboard/weekly-goal";
 import WeeklyProgress from "@/components/dashboard/weekly-progress";
 import RecentBadges from "@/components/dashboard/recent-badges";
-import DailyActivity from "@/components/dashboard/daily-activity";
+import RecentSubmissions from "@/components/dashboard/recent-submissions";
 import SubmissionStats from "@/components/dashboard/submission-stats";
 import ActivityHeatmap from "@/components/dashboard/activity-heatmap";
 import RankingOverview from "@/components/dashboard/ranking-overview";
+import CategoryScores from "@/components/dashboard/category-scores";
+import Recommendations from "@/components/dashboard/recommendations";
+import GoalProfileSection from "@/components/dashboard/goal-profile";
 import type { StudentDashboardData } from "@shared/schema";
 
 export default function StudentDashboard() {
@@ -164,9 +167,14 @@ export default function StudentDashboard() {
           <WeeklyGoal data={data} username={username} />
           <RankingOverview data={data} />
         </div>
-        
+
+        <GoalProfileSection data={data} username={username} />
+
         <SubmissionStats data={data} />
-        
+
+        <CategoryScores data={data} />
+        <Recommendations data={data} />
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <DifficultyBreakdown data={data} />
           <WeeklyProgress data={data} />
@@ -181,7 +189,7 @@ export default function StudentDashboard() {
 
         <ActivityHeatmap data={data} />
         <RecentBadges data={data} />
-        <DailyActivity data={data} />
+        <RecentSubmissions data={data} />
       </div>
     </div>
   );

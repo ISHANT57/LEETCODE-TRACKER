@@ -1,5 +1,7 @@
 import { storage } from "../storage";
 import type { LeetCodeStats } from "@shared/schema";
+import { problemsCatalogService } from "./problems-catalog";
+import { recomputeStudentScores } from "./scoring-engine";
 
 // Enhanced interface to include streak and activity data
 interface EnhancedLeetCodeStats extends LeetCodeStats {
@@ -9,6 +11,7 @@ interface EnhancedLeetCodeStats extends LeetCodeStats {
   totalActiveDays: number;
   yearlyActivity: Array<{ date: string; count: number }>;
   profilePhoto?: string; // LeetCode profile avatar URL
+  badges: Array<{ id: string; displayName: string; icon: string; creationDate: string | null }>;
 }
 
 interface LeetCodeResponse {
@@ -55,6 +58,12 @@ interface LeetCodeResponse {
       problemsSolvedBeatsStats: Array<{
         difficulty: string;
         percentage: number;
+      }>;
+      badges: Array<{
+        id: string;
+        displayName: string;
+        icon: string;
+        creationDate: string | null;
       }>;
     } | null;
   };
@@ -241,6 +250,12 @@ export class LeetCodeService {
           difficulty
           percentage
         }
+        badges {
+          id
+          displayName
+          icon
+          creationDate
+        }
       }
     }
   `;
@@ -299,6 +314,13 @@ export class LeetCodeService {
       const submissionCalendar = data.data.matchedUser.submissionCalendar || '{}';
       const { currentStreak, maxStreak, totalActiveDays, yearlyActivity } = this.parseSubmissionCalendar(submissionCalendar);
 
+      const badges = (data.data.matchedUser.badges || []).map((b) => ({
+        id: b.id,
+        displayName: b.displayName,
+        icon: b.icon,
+        creationDate: b.creationDate,
+      }));
+
       return {
         totalSolved,
         easySolved,
@@ -315,10 +337,53 @@ export class LeetCodeService {
         totalActiveDays,
         yearlyActivity,
         profilePhoto,
+        badges,
       };
     } catch (error) {
       console.error(`Error fetching LeetCode data for ${username}:`, error);
       return null;
+    }
+  }
+
+  private readonly RECENT_AC_QUERY = `
+    query recentAcSubmissions($username: String!, $limit: Int!) {
+      recentAcSubmissionList(username: $username, limit: $limit) {
+        titleSlug
+        timestamp
+      }
+    }
+  `;
+
+  /**
+   * A student's most recent accepted submissions (title slug + timestamp).
+   * Public, unauthenticated — but capped at ~20 most recent and returns an
+   * empty array (not an error) if the student's submission activity is private.
+   */
+  async fetchRecentSolves(username: string): Promise<{ titleSlug: string; solvedAt: Date }[]> {
+    try {
+      const response = await fetch(this.GRAPHQL_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+        body: JSON.stringify({
+          query: this.RECENT_AC_QUERY,
+          variables: { username, limit: 20 },
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`LeetCode recentAcSubmissionList API error for ${username}: ${response.status}`);
+        return [];
+      }
+
+      const data = await response.json();
+      const list: { titleSlug: string; timestamp: string }[] = data?.data?.recentAcSubmissionList || [];
+      return list.map((s) => ({ titleSlug: s.titleSlug, solvedAt: new Date(Number(s.timestamp) * 1000) }));
+    } catch (error) {
+      console.error(`Error fetching recent solves for ${username}:`, error);
+      return [];
     }
   }
 
@@ -382,8 +447,16 @@ export class LeetCodeService {
       // WEEK_ANCHOR; the current week's score refreshes on every daily sync).
       await this.updateWeeklyProgressAnchored(studentId, stats.totalSolved);
 
-      // Check for badge achievements
-      await this.checkBadgeAchievements(studentId, stats, dailyIncrement);
+      // Mirror LeetCode's own badges locally (no custom/local badge logic)
+      await storage.upsertStudentBadges(
+        studentId,
+        stats.badges.map((b) => ({
+          leetcodeBadgeId: b.id,
+          name: b.displayName,
+          icon: b.icon,
+          earnedAt: b.creationDate ? new Date(b.creationDate) : null,
+        }))
+      );
 
       // Update student profile photo if available
       if (stats.profilePhoto && stats.profilePhoto !== student.profilePhoto) {
@@ -407,6 +480,31 @@ export class LeetCodeService {
         await storage.createLeetcodeRealTimeData(realTimeDataToStore);
       }
 
+      // Category-scoring pipeline: pull the student's recent accepted solves,
+      // make sure each solved problem exists in the local catalog (rare
+      // fallback for brand-new problems), record the solves, then recompute
+      // this student's per-category confidence scores.
+      const recentSolves = await this.fetchRecentSolves(student.leetcodeUsername);
+      if (recentSolves.length > 0) {
+        const validSolves: { titleSlug: string; solvedAt: Date }[] = [];
+        for (const solve of recentSolves) {
+          let problem = await storage.getProblemBySlug(solve.titleSlug);
+          if (!problem) {
+            const fetched = await problemsCatalogService.fetchAndUpsertProblem(solve.titleSlug);
+            if (!fetched) {
+              console.warn(`Skipping solve for unknown problem ${solve.titleSlug} (catalog-miss fallback failed)`);
+              continue;
+            }
+          }
+          validSolves.push(solve);
+        }
+        await storage.upsertStudentSolves(
+          studentId,
+          validSolves.map((s) => ({ problemSlug: s.titleSlug, solvedAt: s.solvedAt }))
+        );
+        await recomputeStudentScores(studentId);
+      }
+
       return true;
     } catch (error) {
       console.error(`Error syncing student data for ${studentId}:`, error);
@@ -416,12 +514,27 @@ export class LeetCodeService {
 
   async syncAllStudents(): Promise<{ success: number; failed: number }> {
     const students = await storage.getAllStudents();
-    const results = await Promise.allSettled(
-      students.map(student => this.syncStudentData(student.id))
-    );
 
-    const success = results.filter(result => result.status === 'fulfilled' && result.value).length;
-    const failed = results.length - success;
+    // Each student sync now makes 2 LeetCode GraphQL calls (stats + recent
+    // solves) instead of 1, so batch with a short stagger rather than firing
+    // all requests at once — simple chunking, not a general rate-limiter,
+    // sized for this app's ~200-student scale.
+    const BATCH_SIZE = 20;
+    const BATCH_DELAY_MS = 2000;
+    let success = 0;
+    let failed = 0;
+
+    for (let i = 0; i < students.length; i += BATCH_SIZE) {
+      const batch = students.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(student => this.syncStudentData(student.id))
+      );
+      success += results.filter(result => result.status === 'fulfilled' && result.value).length;
+      failed += results.length - results.filter(result => result.status === 'fulfilled' && result.value).length;
+      if (i + BATCH_SIZE < students.length) {
+        await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+      }
+    }
 
     // Update last sync time
     await storage.updateAppSettings({
@@ -552,98 +665,6 @@ export class LeetCodeService {
     }
   }
 
-  private async checkBadgeAchievements(
-    studentId: string, 
-    stats: LeetCodeStats, 
-    dailyIncrement: number
-  ): Promise<void> {
-    // Check for Century Coder badge (100+ total problems)
-    if (stats.totalSolved >= 100) {
-      const hasCenturyBadge = await storage.hasStudentEarnedBadge(studentId, 'century_coder');
-      if (!hasCenturyBadge) {
-        await storage.createBadge({
-          studentId,
-          badgeType: 'century_coder',
-          title: '💯 Century Coder',
-          description: '100+ total problems solved',
-          icon: 'fas fa-code',
-        });
-      }
-    }
-
-    // Check for Streak Master badge (7-day streak of 5+ daily problems)
-    const streak = await storage.calculateStreak(studentId);
-    if (streak >= 7) {
-      const hasStreakBadge = await storage.hasStudentEarnedBadge(studentId, 'streak_master');
-      if (!hasStreakBadge) {
-        await storage.createBadge({
-          studentId,
-          badgeType: 'streak_master',
-          title: '🧐 Streak Master',
-          description: '7-day streak of 5+ daily problems',
-          icon: 'fas fa-fire',
-        });
-      }
-    }
-
-    // Check for Comeback Coder badge (big week-over-week improvement)
-    const weeklyTrends = await storage.getWeeklyTrends(studentId, 2);
-    if (weeklyTrends.length >= 2) {
-      const thisWeek = weeklyTrends[0];
-      const lastWeek = weeklyTrends[1];
-      const weeklyImprovement = thisWeek.weeklyIncrement - lastWeek.weeklyIncrement;
-      
-      if (weeklyImprovement >= 15) { // Big improvement threshold
-        const hasComebackBadge = await storage.hasStudentEarnedBadge(studentId, 'comeback_coder');
-        if (!hasComebackBadge) {
-          await storage.createBadge({
-            studentId,
-            badgeType: 'comeback_coder',
-            title: '🔥 Comeback Coder',
-            description: 'Big week-over-week improvement',
-            icon: 'fas fa-chart-line',
-          });
-        }
-      }
-    }
-
-    // Check for Consistency Champ badge (30-day challenge completion)
-    const dailyProgress = await storage.getStudentDailyProgress(studentId, 30);
-    const activeDays = dailyProgress.filter(p => p.dailyIncrement > 0).length;
-    
-    if (activeDays >= 30) {
-      const hasConsistencyBadge = await storage.hasStudentEarnedBadge(studentId, 'consistency_champ');
-      if (!hasConsistencyBadge) {
-        await storage.createBadge({
-          studentId,
-          badgeType: 'consistency_champ',
-          title: '🧱 Consistency Champ',
-          description: 'Completed 30-day challenge',
-          icon: 'fas fa-calendar-check',
-        });
-      }
-    }
-
-    // Check for Weekly Topper badge (top performer this week)
-    await this.checkWeeklyTopperBadge(studentId);
-  }
-
-  private async checkWeeklyTopperBadge(studentId: string): Promise<void> {
-    // Get current week rankings
-    const currentWeekTrend = await storage.getCurrentWeekTrend(studentId);
-    if (currentWeekTrend && currentWeekTrend.ranking === 1) {
-      const hasWeeklyTopperBadge = await storage.hasStudentEarnedBadge(studentId, 'weekly_topper');
-      if (!hasWeeklyTopperBadge) {
-        await storage.createBadge({
-          studentId,
-          badgeType: 'weekly_topper',
-          title: '🏆 Weekly Topper',
-          description: 'Top performer this week',
-          icon: 'fas fa-trophy',
-        });
-      }
-    }
-  }
 }
 
 export const leetCodeService = new LeetCodeService();

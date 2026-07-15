@@ -25,6 +25,7 @@ export default function StudentTable({ data }: StudentTableProps) {
             <TableHead>Max Streak</TableHead>
             <TableHead>Active Days</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Weakest Area</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -100,6 +101,15 @@ export default function StudentTable({ data }: StudentTableProps) {
                 >
                   {student.status}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                {student.weakestCategory ? (
+                  <Badge variant="secondary" className="whitespace-nowrap">
+                    {student.weakestCategory.categoryLabel}
+                  </Badge>
+                ) : (
+                  <span className="text-xs text-muted-foreground">No data</span>
+                )}
               </TableCell>
               <TableCell>
                 <Button variant="ghost" size="sm">

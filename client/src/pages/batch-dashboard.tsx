@@ -446,6 +446,7 @@ export default function BatchDashboard() {
                     <TableHead className="text-center">Max</TableHead>
                     <TableHead className="text-center">Active</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Weakest Area</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -536,6 +537,15 @@ export default function BatchDashboard() {
                         <Badge variant="outline" className={statusStyle(student.status)}>
                           {student.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {student.weakestCategory ? (
+                          <Badge variant="secondary" className="whitespace-nowrap">
+                            {student.weakestCategory.categoryLabel}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No data</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

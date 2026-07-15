@@ -35,16 +35,6 @@ interface PostgreSQLWeeklyTrend {
   created_at: Date;
 }
 
-interface PostgreSQLBadge {
-  id: string;
-  student_id: string;
-  badge_type: string;
-  title: string;
-  description: string;
-  icon: string;
-  earned_at: Date;
-}
-
 async function migrateFromPostgreSQL() {
   console.log('Starting migration from PostgreSQL to MongoDB...');
 
@@ -140,35 +130,15 @@ async function migrateFromPostgreSQL() {
     }
     console.log(`Weekly trends migration completed: ${trends.length} records`);
 
-    // Migrate Badges
-    console.log('Migrating badges...');
-    const badgesResult = await pool.query('SELECT * FROM badges ORDER BY earned_at');
-    const badges = badgesResult.rows as PostgreSQLBadge[];
-    
-    for (const badge of badges) {
-      const mongoStudentId = studentIdMap.get(badge.student_id);
-      if (mongoStudentId) {
-        try {
-          await storage.createBadge({
-            studentId: mongoStudentId,
-            badgeType: badge.badge_type,
-            title: badge.title,
-            description: badge.description,
-            icon: badge.icon
-          });
-        } catch (error) {
-          console.error(`✗ Failed to migrate badge ${badge.title}:`, error);
-        }
-      }
-    }
-    console.log(`Badges migration completed: ${badges.length} records`);
+    // Badges are no longer migrated here — badges now mirror LeetCode's own
+    // badge data (synced live via LeetCodeService), not a locally-computed
+    // set, so there is nothing meaningful to carry over from the old table.
 
     console.log('🎉 Migration completed successfully!');
     console.log(`Total migrated:
     - Students: ${students.length}
     - Daily Progress: ${progressRecords.length}
-    - Weekly Trends: ${trends.length}
-    - Badges: ${badges.length}`);
+    - Weekly Trends: ${trends.length}`);
 
   } catch (error) {
     console.error('Migration failed:', error);
